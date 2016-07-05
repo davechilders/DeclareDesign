@@ -62,6 +62,9 @@ check_design <- function(design) {
     }
   }
   
+  data_names <- c("pop_error", "sample_error", "assign_error", "outcome_error")
+  for (i in data_names[!sapply(data_names, FUN = exists)]) assign(i, NULL)
+  
   # Check sanity of get_ functions
   
   if (class(pop_error) == "data.frame"){
