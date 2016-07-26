@@ -4,7 +4,11 @@
 #' @param type Type of the plot to draw. Currently only supports \code{type = "coverage"},
 #' @param ... Additional parameters passed to ggplot \code{_facet} function.
 #'
-#' @return Plot produced by ggplot2.
+#' @return Diagnosis plot produced by ggplot2.
+#' 
+#' @importFrom ggplot2 ggplot aes geom_point geom_linerange facet_wrap facet_grid scale_fill_manual position_dodge labs theme element_text element_rect element_blank
+#' @importFrom ggthemes theme_few
+#' 
 #' @export
 
 plot.diagnosis <- function(x, type = "coverage",...) {
