@@ -49,7 +49,8 @@ test_that("coverage plots are drawn", {
                            potential_outcomes = potential_outcomes,
                            label = "Blocked and Clustered Design")
   
-  diagnosis <- diagnose_design(design = design, population_draws = 4, sample_draws = 4)
+  diagnosis <- diagnose_design(design = design, population_draws = 1, 
+                               sample_draws = 10, assignment_draws = 10)
   
   multi_estimator_default <- 
     plot(diagnosis)
@@ -98,7 +99,8 @@ test_that("coverage plots are drawn", {
                            potential_outcomes = potential_outcomes,
                            label = "Blocked and Clustered Design")
   
-  diagnosis <- diagnose_design(design = design, population_draws = 2, sample_draws = 4)
+  diagnosis <- diagnose_design(design = design, population_draws = 1, 
+                               sample_draws = 10, assignment_draws = 10)
   
   single_estimator <- 
     plot(diagnosis,
