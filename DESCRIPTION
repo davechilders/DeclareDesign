@@ -18,7 +18,8 @@ Imports:
     foreach,
     doRNG,
     ggplot2,
-    ggthemes
+    ggthemes,
+    plyr
 Suggests:
     testthat,
     dplyr,

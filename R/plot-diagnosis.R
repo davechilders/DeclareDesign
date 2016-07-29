@@ -6,8 +6,9 @@
 #'
 #' @return Diagnosis plot produced by ggplot2.
 #' 
-#' @importFrom ggplot2 ggplot aes geom_point geom_linerange facet_wrap facet_grid scale_fill_manual position_dodge labs theme element_text element_rect element_blank
+#' @importFrom ggplot2 ggplot aes geom_point geom_linerange facet_wrap facet_grid scale_alpha_manual scale_fill_manual scale_shape_manual position_dodge labs theme element_text element_rect element_blank guides
 #' @importFrom ggthemes theme_few
+#' @importFrom plyr ddply
 #' 
 #' @export
 
@@ -15,10 +16,11 @@ plot.diagnosis <- function(x, type = "coverage",...) {
   
   requireNamespace("ggplot2", quietly = TRUE)
   requireNamespace("ggthemes", quietly = TRUE)
-  
+
   if (class(x) != "diagnosis") stop("Argument should be of class diagnosis, as an output of diagnose_design()")
   
   if (type == "coverage") {
+    if (!("coverage" %in% names(x$simulations))) stop("Coverage diagnosand is not defined with label 'coverage'.")
     
     pars <- list(...)
     pars_default <- list(facet_formula = ~ estimand_label + estimator_label + estimate_label,
@@ -44,17 +46,38 @@ plot.diagnosis <- function(x, type = "coverage",...) {
     } else if (sum(est_estimand_search) != 2) {
       stop("Estimand or estimator labels are misspecified or are non-unique in simulations.")
     } else {
-      ci_names <- names(x$simulations)[ci_search]
       
-      dat <- prepare_coverage_data(x$simulations)
+      names(x$simulations)[ci_search] <- c("ci_lower", "ci_upper")
+      
+      dat_cov <- 
+        plyr::ddply(.data = x$simulations, 
+                    c("estimand_label",
+                      "estimator_label",
+                      "estimate_label"),
+                    summarize,
+                    cover = paste("Pr(covered) =", 
+                                  round(sum(coverage)/length(coverage), digits = 3) ),
+                    max_y_point = roundup(max(get(ci_names[2])),digit = 1),
+                    min_x_point = 1)
+      
+      dat_cov$max_y_point <- rep(max(dat_cov$max_y_point), times = nrow(dat_cov))
+      
+      dat <- prepare_coverage_data(simulations = x$simulations)
       coverage_plot <- 
         ggplot(data = dat) +
         geom_linerange(aes(x = sim, 
-                           ymin= get(ci_names[1]), 
-                           ymax= get(ci_names[2])), 
-                       colour="black", position = position_dodge(0.1)) +
-        geom_point(aes(x = sim, y = value, fill = est_estimand), position = position_dodge(0.1),
-                   size=1.5, shape=21) +
+                           ymin = ci_lower, 
+                           ymax = ci_upper,
+                           alpha = coverage),
+                       color = "#1f78b4",
+                       position = position_dodge(0.1)) +
+        geom_point(aes(x = sim, y = value, 
+                       fill = est_estimand,
+                       shape = est_estimand), 
+                   position = position_dodge(0.1),
+                   size = 2*scaler(count_simulations(x$simulations)), 
+                   stroke = 0.3*scaler(count_simulations(x$simulations)),
+                   alpha = 1*scaler(count_simulations(x$simulations))) +
         theme_few(base_size = 12, base_family = "Helvetica")
       
       if (facet_type == "wrap") {
@@ -71,35 +94,87 @@ plot.diagnosis <- function(x, type = "coverage",...) {
                      scales = "fixed")
       }
       
-      coverage_plot +
-        scale_fill_manual(values = c("white", "red"),
-                          name= "Value of", 
+      coverage_plot <- 
+        coverage_plot +
+        geom_text(data = dat_cov, aes(x = min_x_point, y = max_y_point, label = cover),
+                  vjust = "inward", hjust = "inward",
+                  inherit.aes = FALSE, parse=FALSE) +
+        scale_alpha_manual(name = "Estimand is",
+                           labels = c("not in CI", "in CI"),
+                           values = c(.8*scaler(count_simulations(x$simulations)), 
+                                      0.3*scaler(count_simulations(x$simulations)))) +
+        scale_shape_manual(name= "Value of", 
+                           labels=c("Estimator", "Estimand"),
+                           values = c(21,23)) +
+        scale_fill_manual(name= "Value of", 
+                          values = c("#33a02c","#e31a1c"),
                           labels=c("Estimator", "Estimand")) +
         labs(title = "Coverage plot",
              y = "Value",
              x = "Simulation") +
         theme(legend.position="top",
-              legend.title=element_text(size=10),
-              legend.background = element_rect(colour = "black"),
+              legend.title = element_text(size=10),
+              legend.background = element_rect(colour = "black", size = 0.1),
+              legend.box = "horizontal",
               axis.text.x=element_blank(),
               axis.ticks.x=element_blank())
+      
+      if (all(dat_cov$cover == "Pr(covered) = 1")) {
+        coverage_plot +
+          guides(shape = guide_legend(override.aes = list(size=2, alpha = 1)),
+                 alpha = guide_legend(override.aes = list(size=3, alpha = .4)))
+      }
+      
+      coverage_plot +
+        guides(shape = guide_legend(override.aes = list(size=2, alpha = 1)),
+               alpha = guide_legend(override.aes = list(size=3, alpha = c(1,.4))))
     }
   }
 }
 
 #' @export
-prepare_coverage_data <- function(x) {
+roundup <- function(x, digit) {
+  if(length(x) != 1) stop("'x' must be of length 1")
+  return(ceiling(x*10^digit)/10^digit)
+}
+
+#' @export
+scaler <- function(x) {
+  if (x > 200) {
+    return(1/4)
+  } else if (x > 100) {
+    return(2/4)
+  } else if (x > 50) {
+    return(3/4)
+  } else {
+    return(1) }
+}
+
+#' @export
+count_simulations <- function(simulations) {
+  simulations$comb <- 
+    paste(simulations$estimand_label,
+          simulations$estimator_label,
+          simulations$estimate_label)
+  sims <- nrow(simulations)/length(unique(simulations$comb))
+  if (sims - floor(sims) != 0) stop("Number of rows in simulations of diagnosis object is not a multiple of unique combinations of estimand, estimator and estimate.")
+  return(sims)
+}
+
+#' @export
+prepare_coverage_data <- function(simulations) {
   Reduce(function(...) merge(..., all=T), 
          lapply(
-           split(x, f = paste(x$estimand_label,x$estimator_label,x$estimate_label)),
+           split(simulations, f = paste(simulations$estimand_label,
+                                        simulations$estimator_label,
+                                        simulations$estimate_label)),
            FUN = function(x){
-             x <- x[order(x$est),]
+             x <- x[order(x$est,x$coverage),]
              x$sim <- 1:nrow(x)
              x <- stats::reshape(data = x, varying = c("est", "estimand"),
                                  v.names = "value",
                                  timevar = "est_estimand",
                                  times = c("est", "estimand"), direction = "long")
-             # x <- tidyr::gather(x, "est_estimand", "value", est, estimand)
              return(x)}))
 }
 

@@ -49,8 +49,8 @@ test_that("coverage plots are drawn", {
                            potential_outcomes = potential_outcomes,
                            label = "Blocked and Clustered Design")
   
-  diagnosis <- diagnose_design(design = design, population_draws = 1, 
-                               sample_draws = 10, assignment_draws = 10)
+  diagnosis <- diagnose_design(design = design, population_draws = 10, 
+                               sample_draws = 10, assignment_draws = 2)
   
   multi_estimator_default <- 
     plot(diagnosis)
@@ -82,15 +82,6 @@ test_that("coverage plots are drawn", {
                    3)
   expect_identical(class(multi_estimator_grid$facet$cols), "quoted")
   expect_null(multi_estimator_grid$facet$ncol)
-  
-  # needs to be changed so that we can pick the estimand for which estimator to report
-  multi_estimator_formula <- 
-    plot(diagnosis,
-         facet_formula = ~ estimand_label,
-         cols = 3, 
-         facet_type = "grid")
-  
-  expect_null(multi_estimator_formula$facet$facets)
   
   design <- declare_design(population = population,
                            sampling = sampling,
