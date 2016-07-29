@@ -6,11 +6,11 @@
 #'
 #' @return Diagnosis plot produced by ggplot2.
 #' 
+#' @export
+#' 
 #' @importFrom ggplot2 ggplot aes geom_point geom_linerange facet_wrap facet_grid scale_alpha_manual scale_fill_manual scale_shape_manual position_dodge labs theme element_text element_rect element_blank guides geom_text guide_legend
 #' @importFrom ggthemes theme_few
-#' @importFrom plyr ddply
-#' 
-#' @export
+#' @importFrom plyr llply ddply summarize
 
 plot.diagnosis <- function(x, type = "coverage",...) {
   
@@ -52,10 +52,10 @@ plot.diagnosis <- function(x, type = "coverage",...) {
       
       dat_cov <- 
         plyr::ddply(.data = x$simulations, 
-                    c("estimand_label",
-                      "estimator_label",
-                      "estimate_label"),
-                    summarize,
+                    .variables = c("estimand_label",
+                                   "estimator_label",
+                                   "estimate_label"),
+                    .fun = plyr::summarize,
                     cover = paste("Pr(covered) =", 
                                   round(sum(coverage)/length(coverage), digits = 3) ),
                     max_y_point = roundup(max(ci_upper),digit = 1),
