@@ -59,13 +59,13 @@ test_that("coverage plots are drawn", {
   
   multi_estimator_cols <- 
     plot(diagnosis,
-         facet_formula = ~ estimand_label + estimator_label + estimate_label,
+         facet_formula = ~ Estimand + Estimator + Estimate,
          cols = 5, 
          facet_type = "wrap")
   
   multi_estimator_grid <- 
     plot(diagnosis,
-         facet_formula = ~ estimand_label + estimator_label + estimate_label,
+         facet_formula = ~ Estimand + Estimator + Estimate,
          cols = 3, 
          facet_type = "grid")
   
@@ -99,13 +99,13 @@ test_that("coverage plots are drawn", {
   
   single_estimator <- 
     plot(diagnosis,
-         facet_formula = ~ estimand_label + estimator_label + estimate_label,
+         facet_formula = ~ Estimand + Estimator + Estimate,
          cols = 3, 
          facet_type = "wrap")
   
   single_estimator_change <- 
     plot(diagnosis,
-         facet_formula = ~ estimand_label + estimator_label,
+         facet_formula = ~ Estimand + Estimator,
          cols = 3, 
          facet_type = "grid")
   

@@ -6,11 +6,11 @@
 #'
 #' @return Diagnosis plot produced by ggplot2.
 #' 
-#' @export
-#' 
 #' @importFrom ggplot2 ggplot aes geom_point geom_linerange facet_wrap facet_grid scale_alpha_manual scale_fill_manual scale_shape_manual position_dodge labs theme element_text element_rect element_blank guides geom_text guide_legend
 #' @importFrom ggthemes theme_few
 #' @importFrom plyr llply ddply summarize
+#'
+#' @export
 
 plot.diagnosis <- function(x, type = "coverage",...) {
   
@@ -24,7 +24,7 @@ plot.diagnosis <- function(x, type = "coverage",...) {
     if (!("coverage" %in% names(x$simulations))) stop("Coverage diagnosand is not defined with label 'coverage'.")
     
     pars <- list(...)
-    pars_default <- list(facet_formula = ~ estimand_label + estimator_label + estimate_label,
+    pars_default <- list(facet_formula = ~ Estimand + Estimator + Estimate,
                          facet_type = "wrap", 
                          cols = 3, rows = NULL)
     
@@ -50,11 +50,19 @@ plot.diagnosis <- function(x, type = "coverage",...) {
       
       names(x$simulations)[ci_search] <- c("ci_lower", "ci_upper")
       
+      x$simulations <- rename(df = x$simulations, 
+                              from = c("estimand_label",
+                                       "estimator_label",
+                                       "estimate_label"),
+                              to = c("Estimand",
+                                     "Estimator",
+                                     "Estimate"))
+      
       dat_cov <- 
         plyr::ddply(.data = x$simulations, 
-                    .variables = c("estimand_label",
-                                   "estimator_label",
-                                   "estimate_label"),
+                    .variables = c("Estimand",
+                                   "Estimator",
+                                   "Estimate"),
                     .fun = plyr::summarize,
                     cover = paste("Pr(covered) =", 
                                   round(sum(coverage)/length(coverage), digits = 3) ),
@@ -79,7 +87,7 @@ plot.diagnosis <- function(x, type = "coverage",...) {
                    size = 2*scaler(count_simulations(x$simulations)), 
                    stroke = 0.3*scaler(count_simulations(x$simulations)),
                    alpha = 1*scaler(count_simulations(x$simulations))) +
-        theme_few(base_size = 12, base_family = "Helvetica")
+        ggthemes::theme_few(base_size = 12, base_family = "Helvetica")
       
       if (facet_type == "wrap") {
         coverage_plot <- 
@@ -95,40 +103,51 @@ plot.diagnosis <- function(x, type = "coverage",...) {
                      scales = "fixed")
       }
       
+      if (all(dat_cov$cover == "Pr(covered) = 1")) {
+        coverage_plot <- 
+          coverage_plot +
+          scale_alpha_manual(name = "Estimand is",
+                             labels = c("in CI"),
+                             values = c(0.3*scaler(count_simulations(x$simulations))))
+      } else {
+        coverage_plot <- 
+          coverage_plot +
+          scale_alpha_manual(name = "Estimand is",
+                             labels = c("not in CI", "in CI"),
+                             values = c(.8*scaler(count_simulations(x$simulations)), 
+                                        0.3*scaler(count_simulations(x$simulations))))
+      }
+      
       coverage_plot <- 
         coverage_plot +
         geom_text(data = dat_cov, aes(x = min_x_point, y = max_y_point, label = cover),
                   vjust = "inward", hjust = "inward",
                   inherit.aes = FALSE, parse=FALSE) +
-        scale_alpha_manual(name = "Estimand is",
-                           labels = c("not in CI", "in CI"),
-                           values = c(.8*scaler(count_simulations(x$simulations)), 
-                                      0.3*scaler(count_simulations(x$simulations)))) +
-        scale_shape_manual(name= "Value of", 
-                           labels=c("Estimator", "Estimand"),
+        scale_shape_manual(name = "Value of", 
+                           labels = c("Estimator", "Estimand"),
                            values = c(21,23)) +
-        scale_fill_manual(name= "Value of", 
+        scale_fill_manual(name = "Value of", 
                           values = c("#33a02c","#e31a1c"),
                           labels=c("Estimator", "Estimand")) +
         labs(title = "Coverage plot",
              y = "Value",
-             x = "Simulation") +
-        theme(legend.position="top",
+             x = "Simulations (sorted by estimate value)") +
+        theme(legend.position = "top",
               legend.title = element_text(size=10),
               legend.background = element_rect(colour = "black", size = 0.1),
               legend.box = "horizontal",
-              axis.text.x=element_blank(),
-              axis.ticks.x=element_blank())
+              axis.text.x = element_blank(),
+              axis.ticks.x = element_blank())
       
       if (all(dat_cov$cover == "Pr(covered) = 1")) {
         coverage_plot +
           guides(shape = guide_legend(override.aes = list(size=2, alpha = 1)),
                  alpha = guide_legend(override.aes = list(size=3, alpha = .4)))
+      } else {
+        coverage_plot +
+          guides(shape = guide_legend(override.aes = list(size=2, alpha = 1)),
+                 alpha = guide_legend(override.aes = list(size=3, alpha = c(1,.4))))
       }
-      
-      coverage_plot +
-        guides(shape = guide_legend(override.aes = list(size=2, alpha = 1)),
-               alpha = guide_legend(override.aes = list(size=3, alpha = c(1,.4))))
     }
   }
 }
@@ -154,9 +173,9 @@ scaler <- function(x) {
 #' @export
 count_simulations <- function(simulations) {
   simulations$comb <- 
-    paste(simulations$estimand_label,
-          simulations$estimator_label,
-          simulations$estimate_label)
+    paste(simulations$Estimand,
+          simulations$Estimator,
+          simulations$Estimate)
   sims <- nrow(simulations)/length(unique(simulations$comb))
   if (sims - floor(sims) != 0) stop("Number of rows in simulations of diagnosis object is not a multiple of unique combinations of estimand, estimator and estimate.")
   return(sims)
@@ -166,9 +185,9 @@ count_simulations <- function(simulations) {
 prepare_coverage_data <- function(simulations) {
   Reduce(function(...) merge(..., all=T), 
          lapply(
-           split(simulations, f = paste(simulations$estimand_label,
-                                        simulations$estimator_label,
-                                        simulations$estimate_label)),
+           split(simulations, f = paste(simulations$Estimand,
+                                        simulations$Estimator,
+                                        simulations$Estimate)),
            FUN = function(x){
              x <- x[order(x$est,x$coverage),]
              x$sim <- 1:nrow(x)
@@ -179,16 +198,11 @@ prepare_coverage_data <- function(simulations) {
              return(x)}))
 }
 
-
 #' @export
-mgrep <- function(patterns, x, positions = FALSE,...) {
-  if (positions) {
-    unname(
-      unlist(sapply(patterns, 
-                    grep, x, ... = ...)))
-  } else {
-    apply(
-      sapply(patterns, 
-             grepl, x, ... = ...), 2, any)
+rename <- function(df, from, to) {
+  if (length(from) != length(to)) stop("Arguments 'from' and 'to' should be vectors of the same length")
+  for (i in 1:length(from)) {
+    names(df)[names(df) == from[i]] <- to[i]
   }
+  return(df)
 }
