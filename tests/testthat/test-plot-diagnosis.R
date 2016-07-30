@@ -92,8 +92,8 @@ test_that("coverage plots are drawn", {
                            potential_outcomes = potential_outcomes,
                            label = "Blocked and Clustered Design")
   
-  diagnosis <- diagnose_design(design = design, population_draws = 3, 
-                               sample_draws = 3, assignment_draws = 3,
+  diagnosis <- diagnose_design(design = design, population_draws = 2, 
+                               sample_draws = 2, assignment_draws = 2,
                                population_replicates = 100,
                                bootstrap_diagnosands = TRUE)
   

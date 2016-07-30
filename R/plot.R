@@ -109,6 +109,12 @@ plot.diagnosis <- function(x, type = "coverage",...) {
           scale_alpha_manual(name = "Estimand is",
                              labels = c("in CI"),
                              values = c(0.3*scaler(count_simulations(x$simulations))))
+      } else if (all(dat_cov$cover == "Pr(covered) = 0")) {
+        coverage_plot <- 
+          coverage_plot +
+          scale_alpha_manual(name = "Estimand is",
+                             labels = c("not in CI"),
+                             values = c(.8*scaler(count_simulations(x$simulations))))
       } else {
         coverage_plot <- 
           coverage_plot +
@@ -143,6 +149,10 @@ plot.diagnosis <- function(x, type = "coverage",...) {
         coverage_plot +
           guides(shape = guide_legend(override.aes = list(size=2, alpha = 1)),
                  alpha = guide_legend(override.aes = list(size=3, alpha = .4)))
+      } else if (all(dat_cov$cover == "Pr(covered) = 0")) {
+        coverage_plot +
+          guides(shape = guide_legend(override.aes = list(size=2, alpha = 1)),
+                 alpha = guide_legend(override.aes = list(size=3, alpha = 1)))
       } else {
         coverage_plot +
           guides(shape = guide_legend(override.aes = list(size=2, alpha = 1)),
