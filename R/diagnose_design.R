@@ -249,7 +249,12 @@ print.diagnosis <- function(x, ...){
 
 #' @export
 summary.diagnosis <- function(object, ...) {
-  diagnosis_matrix <- object$diagnosands
+  if (length(list(...)) > 0) {
+    diagnosis_matrix <- 
+      object$diagnosands[ eval(parse(text = parse_conditions(df = object$diagnosands, ...))), ]
+  } else if (length(list(...)) == 0) {
+    diagnosis_matrix <- object$diagnosands
+  }
   structure(diagnosis_matrix, class = c("summary.diagnosis", "data.frame"))
 }
 
@@ -264,6 +269,28 @@ print.summary.diagnosis <- function(x, ...){
   invisible(x)
 }
 
+#' @export
+parse_conditions <- function(df,...) {
+  pars <- list(...)
+  pars <- lapply(pars, FUN = function(x) x = paste0(gsub("[[:punct:]]", "", tolower(x)), 
+                                                    collapse = "|"))
+  
+  paste(paste0('grepl(pattern = "', pars, '", x = gsub("[[:punct:]]", "", x =', deparse(substitute(df)), '$', 
+               tolower(names(pars)), '_label), ignore.case = TRUE)'), 
+        collapse = ' & ')
+}
+
+#' @export
+mgsub <- function(pattern, replacement, x, ...) {
+  if (length(pattern)!=length(replacement)) {
+    stop("pattern and replacement do not have the same length.")
+  }
+  result <- x
+  for (i in 1:length(pattern)) {
+    result <- gsub(pattern[i], replacement[i], result, ...)
+  }
+  result
+}
 
 bootstrap_diagnosand_draw <- function(simulations_df){
   
