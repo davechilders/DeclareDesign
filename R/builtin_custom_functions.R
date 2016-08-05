@@ -93,6 +93,61 @@ get_regression_coefficient_robust <- function(model, formula = NULL, coefficient
                     df = as.numeric(df), stringsAsFactors = FALSE))
 }
 
+cluster_robust <- function(model, cluster){
+  require(sandwich, quietly = TRUE)
+  require(lmtest, quietly = TRUE)
+  not.miss<- !is.na(predict(model))
+  if(length(not.miss)!=length(cluster)){
+    stop("check your data: cluster variable has different N than model")
+  }
+  M <- length(unique(cluster[not.miss]))
+  N <- length(cluster[not.miss])
+  K <- model$rank
+  if(M<50){
+    warning("Fewer than 50 clusters, variances may be unreliable (could try block bootstrap instead).")
+  }
+  dfc <- (M/(M - 1)) * ((N - 1)/(N - K))
+  uj <- apply(estfun(model), 2, function(x) tapply(x, cluster, sum, na.rm=TRUE));
+  vcovCL <- dfc * sandwich(model, meat = crossprod(uj)/N)
+  coeftest(model, vcovCL)
+}
+
+#' Extract Regression Coefficients
+#'
+#' @param model An lm model fit
+#' @param formula An lm formula of the form Y~X
+#' @param data A dataframe
+#' @param coefficient_name The name of the coefficient to extract
+#' @param cluster_name The name of the cluster identifier
+#' @param label The label for the regression coefficient
+#' @keywords Cluster, Robust
+#' 
+#' @export
+
+get_regression_coefficient_clustered <- function(model, formula = NULL,
+                                                 data, coefficient_name, cluster_name,
+                                                 label = coefficient_name){
+  if(is.null(formula)){
+    df <- df.residual(model)
+    complete_obs <- as.numeric(rownames(model.matrix(model)))
+    coef_summary <- cluster_robust(model, data[complete_obs, cluster_name])}
+  if(!is.null(formula)){
+    model <- lm(as.formula(formula), data = data)
+    complete_obs <- as.numeric(rownames(model.matrix(model)))
+    coef_summary <- cluster_robust(model, data[complete_obs, cluster_name])
+    df <- df.residual(model)
+  }
+  coef_num <- which(rownames(coef_summary) %in% coefficient_name)
+  est <- coef_summary[coef_num, 1]
+  se <- coef_summary[coef_num, 2]
+  p <- 2 * pt(abs(est/se), df = df, lower.tail = FALSE)
+  conf_int <- suppressMessages(confint(model))[coef_num, ]
+  return(data.frame(estimate_label = label, est = as.numeric(est), 
+                    se = as.numeric(se), p = as.numeric(p), ci_lower = as.numeric(conf_int[1]), 
+                    ci_upper = as.numeric(conf_int[2]), df = as.numeric(df), 
+                    stringsAsFactors = FALSE))
+}
+
 # Built-in-Estimators -----------------------------------------------------
 
 collapse_clusters <- function(data, cluster_variable_name, cluster_collapse_function){
