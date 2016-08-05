@@ -51,4 +51,24 @@ A design
 \description{
 M-arm Template
 }
+\examples{
+\dontrun{
+design_1 <- m_arm_template(N = 1000, n = 500, m = 4, probability_each = c(.2, .3, .15, .35), 
+                           mu_Y0 = .3, ATEs = c(-.2, .04, .32), noise_scale = 1)
+design_2 <- m_arm_template(N = 200, mu_Y0 = .2, ATEs = .06, binary_POs = T)
+design_3 <- m_arm_template(N = 400, n = 300, m = 3, mu_Y0 = 2, ATEs = c(-.38, -.12), 
+                           block_var_probs = c(.2, .25, .25, .3), block_noise_coef = 2, 
+                           blocked_RA = T)
+design_4 <- m_arm_template(N = 600, n_clust_pop = 100, n_clust_samp = 80, ATEs = .25, coef_X = .8, 
+                           cov_adjustment = T)
+design_5 <- m_arm_template(N = 800, n_clust_pop = 200, m = 3, mu_Y0 = .65, ATEs = c(-.1, -.05), 
+                           probability_each = c(.25, .25, .5), binary_POs = T)
+design_6 <- m_arm_template(N = 500, n_clust_pop = 100, mu_Y0 = .4, ATEs = -.1, block_noise_coef = 2, 
+                           clust_noise_coef = 2, n_blocks = 5, binary_POs = T, blocked_RA = T)
+design_7 <- m_arm_template(N = 600, n_clust_pop = 120, m = 3, custom_pop_list = list(inds = rep(1, 600), 
+                           clusters = rep(c(6, 6, 3, 5, 5), 24), blocks = c(rep(3, each = 40))), 
+                           ATEs = c(-.15, .2),  mu_Y0 = .4, clust_noise_coef = 2, binary_POs = T, 
+                           noise_scale = 1)
+}                            
+}
 
