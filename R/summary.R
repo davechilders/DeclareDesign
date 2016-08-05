@@ -86,22 +86,133 @@ print.summary.design <- function(x, ...){
 ## population
 
 #' @export
-summary.population <- function(object, ...) {
+summary.population <- function(object, extended = FALSE,...) {
   object <- clean_inputs(object, "population", accepts_list = FALSE)
-  size <- get("size", envir = environment(object$population))
-  levels <- get_level_names(object$population)
-  level_sizes <- ifelse(is.null(levels), "individuals", paste(size, levels, collapse = " in "))
   
-  summary_text <- paste0("The population is defined as ", 
-                         ifelse(length(size) > 1, level_sizes, paste(size, "units")), ".")
+  if (length(environment(object$population)) == 6) {
+    size <- get("size", envir = environment(object$population))
+    levels <- get_level_names(object$population)
+    level_sizes <- ifelse(is.null(levels), "individuals", paste(size, levels, collapse = " in "))
+    
+    summary_text <- paste0("The population is defined as ", 
+                            ifelse(length(size) > 1, level_sizes, paste(size, "units")), ".")
+  } else if (length(environment(object$population)) == 3) {
+    size <- get("size_internal", envir = environment(object$population))
+    summary_text <- paste0("The population is defined via custom DGP function as ", 
+                           ifelse(length(size) > 1, 
+                                  paste(size, paste0("unit_level_", 1:length(size)), collapse = " in "), 
+                                  paste(size, "units")), 
+    " (level labels are not specified).")
+  }
+  
+  if (extended) {
+    if (length(environment(object$population)) == 6 ) {
+      data <- draw_population(object)
+      data <- data[,!grepl("ID", names(data), ignore.case = TRUE)]
+      variable_summaries <- 
+        sapply(data, 
+               FUN = function(x) round(c(mean = mean(x, na.rm = TRUE),
+                                         sd = sd(x, na.rm = TRUE)), digits = 2))
+      variable_summaries <- sapply(get_variable_names(object$population), 
+                                   function(x) {
+                                     if (length(x) != 0) {
+                                       matrix(variable_summaries[,x],nrow = 2,
+                                              dimnames = list(c("mean","sd"),
+                                                              x)) 
+                                     } else {x}}, simplify = FALSE)
+      
+      summary_text <- 
+        paste0(
+          summary_text, "\n\nVariable summary\n",
+          paste(sapply(names(variable_summaries), 
+                       FUN = function(x) if (length(variable_summaries[[x]]) != 0) { 
+                         paste(
+                           ifelse(ncol(variable_summaries[[x]]) == 1, 
+                                  "variable", "variables"), 
+                           paste(
+                             paste0(
+                               colnames(variable_summaries[[x]]), 
+                               " (mean = ", variable_summaries[[x]]["mean",],
+                               ", std.dev. = ", variable_summaries[[x]]["sd",], ")"
+                             ), 
+                             collapse = ", "), 
+                           ifelse(ncol(variable_summaries[[x]]) == 1, 
+                                  "changes", "change"),
+                           "at the level of the", x) } else {
+                             paste("no variables change at the", x, "level")
+                           }, simplify = FALSE), 
+                collapse = ", "),
+          ".\n")
+          
+          
+    } else if (length(environment(object$population)) == 3) {
+      if (!is.null(environment(object$population)$data_internal)) {
+        data <- environment(object$population)$data_internal
+        data <- data[,!grepl("ID", names(data), ignore.case = TRUE)]
+        variable_summaries <- 
+          sapply(data, 
+                 FUN = function(x) round(c(mean = mean(x, na.rm = TRUE),
+                                           sd = sd(x, na.rm = TRUE)), digits = 2))
+        summary_text <- 
+          paste0(
+            summary_text, "\n\nVariable summary\n",
+            paste("there are", ncol(variable_summaries), 
+                  ifelse(ncol(variable_summaries) == 1, 
+                         "variable", "variables"), 
+                  "specified via user data:",
+                  paste(
+                    paste0(
+                      colnames(variable_summaries), 
+                      " (mean = ", variable_summaries["mean",],
+                      ", std.dev. = ", variable_summaries["sd",], ")"
+                    ), 
+                    collapse = ", ")),
+            ".\n")
+      } else if (is.null(environment(object$population)$data_internal)) {
+        data <- draw_population(object)
+        data <- data[,!grepl("ID", names(data), ignore.case = TRUE)]
+        variable_summaries <- 
+          sapply(data, 
+                 FUN = function(x) round(c(mean = mean(x, na.rm = TRUE),
+                                           sd = sd(x, na.rm = TRUE)), digits = 2))
+        summary_text <- 
+          paste0(
+            summary_text, "\n\nVariable summary\n",
+            paste("there are", ncol(variable_summaries), 
+                  ifelse(ncol(variable_summaries) == 1, 
+                         "variable", "variables"), 
+                  "specified via custom population function:",
+                  paste(
+                    paste0(
+                      colnames(variable_summaries), 
+                      " (mean = ", variable_summaries["mean",],
+                      ", std.dev. = ", variable_summaries["sd",], ")"
+                    ), 
+                    collapse = ", ")),
+            ".\n")
+      }
+    }
+  }
+  
   structure(summary_text, class = c("summary.population", "population"))
 }
 
 #' @export
-print.summary.sampling <- function(x, ...){
+print.summary.population <- function(x, ...){
   cat(x)
+  invisible(x)
 }
 
+#' @export
+get_variable_names <- function(population){
+  level_expressions <- get("expressions", envir = environment(population))
+  return(
+    sapply(names(level_expressions), 
+           FUN = function(x) names(level_expressions[[x]]) )
+    )
+}
+
+#' @export
 get_level_names <- function(population){
   level_ID_variables <- get_level_IDs(expression_list = get("expressions", envir = environment(population)), 
                                       level_IDs = get("level_IDs", envir = environment(population)), 
