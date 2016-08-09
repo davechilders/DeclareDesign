@@ -1,32 +1,89 @@
 #' Declare potential outcomes. 
 #' 
-#' Use \code{declare_potential_outcomes} to define potential outcomes as a function of manipulands and ancestor variables. 
+#' Use to define potential outcomes as a function of manipulands and ancestor variables. 
 #' 
 #' @param potential_outcomes_function A function that takes a data frame as the argument \code{data} and returns a vector of length \code{nrow(data)}. Use to define potential outcomes as a function of treatment assignment(s) and pre-treatment characteristics. See details.
 #' @param formula An object of class \link{formula} (or one that can be coerced to that class): a symbolic description of the relationship between potential outcomes, treatment assignment(s) and pre-treatment characateristics. See details.
 #' @param outcome_variable_name The name of the outcome variable as a character string. Can be omitted if a formula is provided.
-#' @param condition_names A vector of treatment condition names, such as c(0, 1). Required for the first \code{potential_outcomes} object supplied to a design. Can be omitted for subsequent \code{potential_outcomes} objects if \code{inherit_condition_names = TRUE} is specified. 
+#' @param condition_names A vector of treatment condition names, such as c(0, 1). If there are multiple treatments, a list of vectors of condition names with one vector for each treatment. Required for the first \code{potential_outcomes} object supplied to a design. Can be omitted for subsequent \code{potential_outcomes} objects if \code{inherit_condition_names = TRUE} is specified. 
 #' @param inherit_condition_names A logical indicating whether \code{condition_names} should be inherited from a previous \code{potential_outcomes} object (TRUE) or not (FALSE).
 #' @param sep A character string indicating the separator that will be used to construct the variable names of potential outcomes. Defaults to \code{_} which yields variable names such as \code{Y_Z_1} and \code{Y_Z_0}.
-#' @param assignment_variable_name The variable name of the treatment assignment indicator that appears in the potential outcomes \code{formula} or the \code{potential_outcomes_function}. Defaults to \code{Z}.
+#' @param assignment_variable_name A character string that contains the variable name of the treatment assignment indicator that appears in the potential outcomes \code{formula} or the \code{potential_outcomes_function}. Defaults to \code{"Z"}. If there are multiple treatments, a vector of treatment indicator names with one element per treatment is required.  
 #' @param interference An interference object created by \code{\link{declare_interference}}.
 #' @param attrition An attrition object created by \code{\link{declare_attrition}}.
 #' @param description A character string containing a description of the potential outcomes. 
-#' @param ... Other options for the \code{potential_outcomes_function}.
+#' @param ... Other arguments passed to the \code{potential_outcomes_function}.
 #' 
-#' @details The relationship between potential outcomes, treatment assignments and pre-treatment characteristics can be specified using the \code{potential_outcomes_function} argument. The function supplied to this argument needs to return an outcome vector of length \code{nrow(data)} when applied to a data frame that contains the following columns: 
+#' @details There are two ways to specify the relationship between potential outcomes, treatment assignments and pre-treatment characteristics. One way is to use the \code{potential_outcomes_function} argument. The function supplied to this argument needs to return an outcome vector of length \code{nrow(data)} when applied to a data frame that contains the following columns: 
 #'          \itemize{
-#'            \item  the treatment indicator named after the character string that has been supplied to the \code{assignment_variable_name} argument,
+#'            \item  one column for each treatment indicator named according to the character string(s) that have been supplied to the \code{assignment_variable_name} argument,
 #'            \item  the pre-treatment characteristic that have been built into the \code{population} object using the \link{declare_population} function.
 #'          }
-#'          Alternatively, the relationship between potential outcomes, treatment assignments and pre-treatment characteristics can be specified symbolically using the \code{formula} argument. A typical formula has the form \code{Y ~ terms}. \code{Y} is the name of the outcome variable. \code{terms} is an expression that may involve (functions of) the treatment assignment indicator  and the pre-treatment characteristics that have been built into the \code{population} object.
 #'          
-#'          If a \code{formula} is supplied, the \code{potential_outcomes_function} can be omitted, since the \code{potential_outcomes_function} argument defaults to the \link{default_potential_outcomes_function} takes the arguments \code{formula} and \code{data} and returns the corresponding outcome vector. Likewise, the \code{formula} can be omitted if a \code{potential_outcomes_function} is supplied.    
+#'          Alternatively, the relationship between potential outcomes, treatment assignments and pre-treatment characteristics can be specified symbolically using the \code{formula} argument. A typical formula has the form \code{Y ~ terms}. \code{Y} is the name of the outcome variable. \code{terms} is an expression that may involve (functions of) the treatment assignment indicator(s)  and the pre-treatment characteristics that have been built into the \code{population} object.
+#'          
+#'          If a \code{formula} is supplied, the \code{potential_outcomes_function} can be omitted, since the \code{potential_outcomes_function} argument defaults to the \link{default_potential_outcomes_function} which takes the arguments \code{formula} and \code{data} and returns the corresponding outcome vector. Likewise, the \code{formula} can be omitted if a \code{potential_outcomes_function} is supplied.    
+#'        
+#'          See the \link{proportion_potential_outcomes_function} for a built-in potential outcomes function that can be used to create proportional potential outcomes.
 #'  
-#' @return \code{potential_outcomes} object.
+#' @return potential_outcomes object.
 #'
-#' @examples Put examples here
-#'
+#' @examples 
+#' ## Declare potential outcomes using potential_outcomes_function
+#' 
+#'  population <- declare_population(noise = "rnorm(n_)", size = 250)
+#'  
+#'  my_potential_outcomes <- function(data) { with(data, Z * 0.25 + noise) }
+#'  
+#'  potential_outcomes <- declare_potential_outcomes(potential_outcomes_function = my_potential_outcomes,
+#'                                                    outcome_variable_name = 'Y',
+#'                                                    condition_names = c(0, 1))
+#'  
+#'  pop_draw <- draw_population(population = population, potential_outcomes = potential_outcomes)
+#'  
+#'  head(pop_draw)
+#'  
+#'  ## Declare potential outcomes using formula
+#'  
+#'  population <- declare_population(noise = "rnorm(n_)", size = 250)
+#'  
+#'  potential_outcomes <- declare_potential_outcomes(formula = Y ~ 0.25 * Z + noise,
+#'                                                    condition_names = c(0, 1),
+#'                                                    assignment_variable_name = "Z")
+#'                                                    
+#'  pop_draw <- draw_population(population = population, potential_outcomes = potential_outcomes)
+#'  
+#'  head(pop_draw)
+#'  
+#'  ## Multiple treatments
+#'  
+#'  population <- declare_population(noise = "rnorm(n_)", size = 250)
+#'  
+#'  potential_outcomes <- declare_potential_outcomes(formula = Y ~ 5 + 1*Z1 + 2*Z2 - 3*Z1*Z2 + noise,
+#'                                                    condition_names = list(Z1 = c(0, 1), 
+#'                                                    Z2 = c(0, 1)),
+#'                                                    assignment_variable_name = c("Z1", "Z2"))
+#'                                                    
+#'   pop_draw <- draw_population(population = population, potential_outcomes = potential_outcomes)
+#'   
+#'   head(pop_draw)
+#'   
+#'  ## Multiple potential outcomes 
+#'  
+#'  population <- declare_population(noise = "rnorm(n_)", size = 250)
+#'  
+#'  potential_outcomes_1 <- declare_potential_outcomes(formula = Y ~ 5 + .5*Z*rnorm(n_) + noise,
+#'                                                      condition_names = c(0, 1),
+#'                                                      assignment_variable_name = "Z")
+#'  
+#'  potential_outcomes_2 <- declare_potential_outcomes(formula = Y2 ~ 5 + .25*Z + noise,
+#'                                                      inherit_condition_names = TRUE,
+#'                                                      assignment_variable_name = "Z")
+#'  
+#'  pop_draw <- draw_population(population = population, potential_outcomes = list(potential_outcomes_1, potential_outcomes_2))
+#'  
+#'  head(pop_draw)
+#'  
 #' @export
 declare_potential_outcomes <- function(
   potential_outcomes_function = 
