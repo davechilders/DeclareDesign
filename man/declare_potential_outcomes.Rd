@@ -2,7 +2,7 @@
 % Please edit documentation in R/declare_potential_outcomes.R
 \name{declare_potential_outcomes}
 \alias{declare_potential_outcomes}
-\title{Declare potential outcomes}
+\title{Declare potential outcomes.}
 \usage{
 
   declare_potential_outcomes(potential_outcomes_function = default_potential_outcomes_function,
@@ -12,32 +12,46 @@
   description = NULL, ...)
 }
 \arguments{
-\item{potential_outcomes_function}{A function to draw potential outcomes as a function of a treatment assignment.}
+\item{potential_outcomes_function}{A function that takes a data frame as the argument \code{data} and returns a vector of length \code{nrow(data)}. Use to define potential outcomes as a function of treatment assignment(s) and pre-treatment characteristics. See details.}
 
-\item{formula}{A formula indicating the relationship between treatment assignment(s) and covariates.}
+\item{formula}{An object of class \link{formula} (or one that can be coerced to that class): a symbolic description of the relationship between potential outcomes, treatment assignment(s) and pre-treatment characateristics. See details.}
 
-\item{outcome_variable_name}{The variable name of the outcome.}
+\item{outcome_variable_name}{The name of the outcome variable as a character string. Can be omitted if a formula is provided.}
 
-\item{condition_names}{A vector of condition names, such as c(0, 1).}
+\item{condition_names}{A vector of treatment condition names, such as c(0, 1). Required for the first \code{potential_outcomes} object supplied to a design. Can be omitted for subsequent \code{potential_outcomes} objects if \code{inherit_condition_names = TRUE} is specified.}
 
-\item{inherit_condition_names}{An indicator for whether condition_names should be inherited from potential outcomes (TRUE) or not (FALSE).}
+\item{inherit_condition_names}{A logical indicating whether \code{condition_names} should be inherited from a previous \code{potential_outcomes} object (TRUE) or not (FALSE).}
 
-\item{sep}{Separator to construct the variable names of potential outcomes.}
+\item{sep}{A character string indicating the separator that will be used to construct the variable names of potential outcomes. Defaults to \code{_} which yields variable names such as \code{Y_Z_1} and \code{Y_Z_0}.}
 
-\item{assignment_variable_name}{The variable name of the treatment assignment(s) that appear in the potential outcomes \code{formula}.}
+\item{assignment_variable_name}{The variable name of the treatment assignment indicator that appears in the potential outcomes \code{formula} or the \code{potential_outcomes_function}. Defaults to \code{Z}.}
 
 \item{interference}{An interference object created by \code{\link{declare_interference}}.}
 
 \item{attrition}{An attrition object created by \code{\link{declare_attrition}}.}
 
-\item{description}{Description in text of the potential outcomes.}
+\item{description}{A character string containing a description of the potential outcomes.}
 
 \item{...}{Other options for the \code{potential_outcomes_function}.}
 }
 \value{
-potential_outcomes object.
+\code{potential_outcomes} object.
 }
 \description{
-Declare potential outcomes
+Use \code{declare_potential_outcomes} to define potential outcomes as a function of manipulands and ancestor variables.
+}
+\details{
+The relationship between potential outcomes, treatment assignments and pre-treatment characteristics can be specified using the \code{potential_outcomes_function} argument. The function supplied to this argument needs to return an outcome vector of length \code{nrow(data)} when applied to a data frame that contains the following columns: 
+         \itemize{
+           \item  the treatment indicator named after the character string that has been supplied to the \code{assignment_variable_name} argument,
+           \item  the pre-treatment characteristic that have been built into the \code{population} object using the \link{declare_population} function.
+         }
+         Alternatively, the relationship between potential outcomes, treatment assignments and pre-treatment characteristics can be specified symbolically using the \code{formula} argument. A typical formula has the form \code{Y ~ terms}. \code{Y} is the name of the outcome variable. \code{terms} is an expression that may involve (functions of) the treatment assignment indicator  and the pre-treatment characteristics that have been built into the \code{population} object.
+         
+         If a \code{formula} is supplied, the \code{potential_outcomes_function} can be omitted, since the \code{potential_outcomes_function} argument defaults to the \link{default_potential_outcomes_function} takes the arguments \code{formula} and \code{data} and returns the corresponding outcome vector. Likewise, the \code{formula} can be omitted if a \code{potential_outcomes_function} is supplied.
+}
+\examples{
+Put examples here
+
 }
 
