@@ -17,7 +17,7 @@
 #' @details There are two ways to specify the relationship between potential outcomes, treatment assignments and pre-treatment characteristics. One way is to use the \code{potential_outcomes_function} argument. The function supplied to this argument needs to return an outcome vector of length \code{nrow(data)} when applied to a data frame that contains the following columns: 
 #'          \itemize{
 #'            \item  one column for each treatment indicator named according to the character string(s) that have been supplied to the \code{assignment_variable_name} argument,
-#'            \item  the pre-treatment characteristic that have been built into the \code{population} object using the \link{declare_population} function.
+#'            \item  the pre-treatment characteristics that have been built into the \code{population} object using the \link{declare_population} function.
 #'          }
 #'          
 #'          Alternatively, the relationship between potential outcomes, treatment assignments and pre-treatment characteristics can be specified symbolically using the \code{formula} argument. A typical formula has the form \code{Y ~ terms}. \code{Y} is the name of the outcome variable. \code{terms} is an expression that may involve (functions of) the treatment assignment indicator(s)  and the pre-treatment characteristics that have been built into the \code{population} object.
