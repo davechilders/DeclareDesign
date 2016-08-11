@@ -4,99 +4,103 @@ library(DeclareDesign)
 
 context("summary methods")
 
-test_that("summary of population works", {
-  
-  # standard way of declaring population
-  
-  pop1 <- declare_population(
-    indiv = list(
-      income = "rnorm(n_)",
-      age = "rpois(n_,30)"
-    ),
-    city = list(
-      city_educ_mean = "rnorm(n = n_, mean = 100, sd = 10)",
-      city_educ_sd = "rgamma(n = n_, shape = 2, rate = 2)"
-    ),
-    region = list(),
-    make_unique_ID = T,
-    size = c(1000,50,20)
-  )
-  
-  expect_silent(object = summary(pop1))
+pop1 <- declare_population(
+  indiv = list(
+    income = "rnorm(n_)",
+    age = "rpois(n_,30)"
+  ),
+  city = list(
+    city_educ_mean = "rnorm(n = n_, mean = 100, sd = 10)",
+    city_educ_sd = "rgamma(n = n_, shape = 2, rate = 2)"
+  ),
+  region = list(),
+  make_unique_ID = T,
+  size = c(1000,50,20)
+)
+
+test_that("summary of standard way of declaring population works", {
+  expect_silent(summary(pop1))
   expect_silent(summary(pop1, extended = TRUE))
-  expect_false(summary(pop1) == summary(pop1, extended = TRUE))
-  
-  # simple custom DGP function
-  
-  my_DGP <- function(size){
-    data <- data.frame(matrix(data = rnorm(size^2), nrow = size))
-    names(data) <- paste0("X",1:ncol(data))
-    return(data)
-  }
-  
-  pop2 <- declare_population(size = 10,
-                             custom_population_function = my_DGP,
-                             make_unique_ID = T)
-  
-  expect_silent(object = summary(pop2))
+  expect_true(any(!(class(summary(pop1, extended = TRUE)) %in% class(summary(pop1)))))
+}) 
+
+
+
+
+my_DGP <- function(size){
+  data <- data.frame(matrix(data = rnorm(size^2), nrow = size))
+  names(data) <- paste0("X",1:ncol(data))
+  return(data)
+}
+
+pop2 <- declare_population(size = 10,
+                           custom_population_function = my_DGP,
+                           make_unique_ID = T)
+
+test_that("summary of population with simple custom DGP function works", {
+  expect_silent(summary(pop2))
   expect_silent(summary(pop2, extended = TRUE))
-  expect_false(summary(pop2) == summary(pop2, extended = TRUE))
+  expect_true(any(!(class(summary(pop2, extended = TRUE)) %in% class(summary(pop2)))))
+})
   
-  # user-provided data
-  
-  user_data <- declare_population(
-    individuals = list(
-      income = "rnorm(n_)",
-      age = "rpois(n_,30)"
-    ),
-    city = list(
-      city_educ_mean = "rnorm(n = n_, mean = 100, sd = 10)",
-      city_educ_sd = "rgamma(n = n_, shape = 2, rate = 2)"
-    ),
-    region = list(),
-    make_unique_ID = T,
-    size = c(1000,50,20)
-  )$population()
-  
-  pop3 <- declare_population(
-    individuals = list(
-      income = get_variable(level_ID = "individuals_ID", 
-                            variable_name = "income",
-                            data = user_data)
-    ),
-    cities = list(
-      # Here we just grab a variable that does not vary at city level
-      educ_level = get_variable(level_ID = "city_ID",
-                                variable_name = "city_educ_mean",
-                                data = user_data)
-    ),
-    size = c(500, 50),
-    options = list(user_data = user_data)
-  )
-  
-  expect_silent(object = summary(pop3))
+
+# user-provided data
+
+user_data <- declare_population(
+  individuals = list(
+    income = "rnorm(n_)",
+    age = "rpois(n_,30)"
+  ),
+  city = list(
+    city_educ_mean = "rnorm(n = n_, mean = 100, sd = 10)",
+    city_educ_sd = "rgamma(n = n_, shape = 2, rate = 2)"
+  ),
+  region = list(),
+  make_unique_ID = T,
+  size = c(1000,50,20)
+)$population()
+
+pop3 <- declare_population(
+  individuals = list(
+    income = get_variable(level_ID = "individuals_ID", 
+                          variable_name = "income",
+                          data = user_data)
+  ),
+  cities = list(
+    # Here we just grab a variable that does not vary at city level
+    educ_level = get_variable(level_ID = "city_ID",
+                              variable_name = "city_educ_mean",
+                              data = user_data)
+  ),
+  size = c(500, 50),
+  options = list(user_data = user_data)
+)
+
+test_that("summary of population with user-provided data works", {
+  expect_silent(summary(pop3))
   expect_silent(summary(pop3, extended = TRUE))
-  expect_false(summary(pop3) == summary(pop3, extended = TRUE))
+  expect_true(any(!(class(summary(pop3, extended = TRUE)) %in% class(summary(pop3)))))
+})
   
   
-  # user-provided data, custom resampling function
-  
-  my_pop_and_data_function <- function(size,data){
-    N <- nrow(data)
-    data[sample(1:N,size,TRUE),]
-  }
-  
-  pop4 <- declare_population(
-    custom_population_function = my_pop_and_data_function,
-    data = user_data,
-    size = 1000,
-    resample_data = T)
-  
-  expect_silent(object = summary(pop4))
+
+# user-provided data, custom resampling function
+
+my_pop_and_data_function <- function(size,data){
+  N <- nrow(data)
+  data[sample(1:N,size,TRUE),]
+}
+
+pop4 <- declare_population(
+  custom_population_function = my_pop_and_data_function,
+  data = user_data,
+  size = 1000,
+  resample_data = T)
+
+test_that("summary of population with user-provided data and custom resampling function works", {
+  expect_silent(summary(pop4))
   expect_silent(summary(pop4, extended = TRUE))
-  expect_false(summary(pop4) == summary(pop4, extended = TRUE))
-  
-  
+  expect_true(any(!(class(summary(pop4, extended = TRUE)) %in% class(summary(pop4)))))
 })
 
 
