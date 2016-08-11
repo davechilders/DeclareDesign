@@ -14,7 +14,7 @@ check_design <- function(design) {
                        index = 1)
   
   # Run through draw_ functions to detect errors at any step
-  .temp <- draw_error(design, message_index = message_list$index)
+  .temp <- error_in_draw(design, message_index = message_list$index)
   
   message_list <- read_error(error_list = .temp$messages,
                              message_list = message_list)
@@ -22,7 +22,7 @@ check_design <- function(design) {
   
   # Check sanity of get_ functions
   message_list <- 
-    read_error(error_list = get_error(design, draws = .temp$draws, 
+    read_error(error_list = error_in_get(design, draws = .temp$draws, 
                                       message_index = message_list$index)$messages,
                message_list = message_list)
   
@@ -30,8 +30,8 @@ check_design <- function(design) {
   # check consistency of notation for assignment
  
   message_list <- read_error(error_list = 
-                               label_error(design, 
-                                           message_index = message_list$index)$messages,
+                               error_in_label(design, 
+                                              message_index = message_list$index)$messages,
                              message_list = message_list)
   
   
@@ -42,7 +42,7 @@ check_design <- function(design) {
 #' Run through draw_ functions to detect errors at any step
 #' 
 #' @export
-draw_error <- function(design, message_index){
+error_in_draw <- function(design, message_index){
   
   message_list_temp <- draw_list <- list()
   
@@ -111,7 +111,7 @@ draw_error <- function(design, message_index){
 #' Check sanity of get_ functions
 #' 
 #' @export
-get_error <- function(design, draws, message_index) {
+error_in_get <- function(design, draws, message_index) {
   
   message_list_temp <- list()
   
@@ -123,17 +123,13 @@ get_error <- function(design, draws, message_index) {
         silent = TRUE
       )
       
-      if (class(estimand_error) == "try-error" | 
-          length(estimand_error) != 1 |
-          !is.numeric(estimand_error)) {
+      if (class(estimand_error) == "try-error" |
+          !is.data.frame(estimand_error)) {
         message_list_temp[[message_index]] <-
           paste0(message_index, ". Conflict between assignment and sampling declarations with message: \n",
-                 ifelse(class(estimand_error) == "try-error", yes = estimand_error[[1]],
-                        no = paste0( "Error in get_estimands(estimand = design$estimator[[1]]$estimand, data = pop_error) :\n",
-                                     ifelse(length(estimand_error) != 1, 
-                                            yes = "There should be only one estimand defined \n",
-                                            no = "Estimand should return numeric value \n")
-                        )
+                 ifelse(class(estimand_error) == "try-error", 
+                        yes = estimand_error[[1]],
+                        no = paste0("Error in get_estimands(estimand = design$estimator[[1]]$estimand, data = pop_error) :\nEstimand should return numeric value.\n")
                  )
           )
         message_index <- message_index + 1
@@ -144,66 +140,72 @@ get_error <- function(design, draws, message_index) {
         get_estimates(estimator = design$estimator, data = draws$outcome_error),
         silent = TRUE
       )
-      if (dim(estimator_error)[2] != length(design$estimator)) {
+      if (nrow(estimator_error) != 
+          length(
+            unlist(
+              sapply(design$estimator,
+                     FUN = function(x) 
+                       paste(x$label,x$estimand_label,x$estimand_level)
+              )
+            )
+          )
+      ) {
         message_list_temp[[message_index]] <-
           paste0(message_index, ". Problem in number of estimates provided with message: \n",
                  "Error in get_estimates(estimator = design$estimator, data = outcome_error) :\n",
-                 "The estimates table does not have length(design$estimator) of columns \n")
+                 "The estimates table does not have nrow(design$estimator) of columns \n")
         message_index <- message_index + 1
       }
     }
   }
-  
   return(list(messages = message_list_temp))
 }
 
 #' Check consistency of labelling
 #' 
 #' @export
-label_error <- function(design, message_index) {
+error_in_label <- function(design, message_index) {
   
   message_list_temp <- list()
   
-  design$estimator[[1]]$estimand$label 
+  estimator_estimand_labels <- 
+    unlist(sapply(design$estimator,
+                      FUN = function(x) paste(x$label,x$estimand_label,x$estimand_level)))
   
-  estimator_labels <- sapply(design$estimator, FUN = function(x) x$labels)
-  estimand_labels <- sapply(design$estimator, FUN = function(x) x$estimand$label)
-  
-  for (i in c("estimator","estimand")){
-    if (length(unique(get(paste0(i, "_labels")))) != length(get(paste0(i, "_labels"))) ) {
-      message_list_temp[[message_index]] <-
-        paste0(message_index, ". Conflict in labels of ", 
-               i, "s with message: \n Labels of ", 
-               i, "s should be unique \n")
-      message_index <- message_index + 1
-    }
+  if (length(unique(estimator_estimand_labels)) != 
+      length(estimator_estimand_labels) ) {
+    message_list_temp[[message_index]] <-
+      paste0(message_index, ". Conflict in labels of estimators and estimands with message: \n Combinations of estimator label, estimand label and estimand level should be unique \n")
+    message_index <- message_index + 1
   }
   
-  assignment_variable_names_in_po <- 
+  assignment_names_in_po <- 
     sapply(design$potential_outcomes, 
            FUN = function(x) x$assignment_variable_name)
-  assignment_variable_names_in_estimator <- 
-    sapply(design$estimator, 
-           FUN = function(x) sapply(x$estimand$potential_outcomes, 
-                                    FUN = function(x) x$assignment_variable_name))
+  assignment_names_in_estimator <- 
+    unlist(
+      recursive_unlist(x = design, 
+                       tree_names = c("estimator", "estimand", 
+                                      "potential_outcomes", "assignment_variable_name"))
+    )
   
-  if (length(unique(assignment_variable_names_in_po)) != 1) {
+  if (length(unique(assignment_names_in_po)) != 1) {
     message_list_temp[[message_index]] <-
       paste0(message_index, ". Conflict in names of assignment variables with message: \n",
              "Names of assignment variables are not unique in potential outcomes declaration \n")
     message_index <- message_index + 1
-  } else if (length(unique(assignment_variable_names_in_estimator)) != 1) {
+  } else if (length(unique(assignment_names_in_estimator)) != 1) {
     message_list_temp[[message_index]] <-
       paste0(message_index, ". Conflict in names of assignment variables with message: \n",
-             "Names of assignment variables are not unique in potential outcomes declaration within estimator \n")
+             "Names of assignment variables are not unique in potential outcomes declaration within estimator-estimand pairs \n")
     message_index <- message_index + 1
-  } else if (length(unique(c(assignment_variable_names_in_po,
-                             assignment_variable_names_in_estimator) )) != 1) {
+  } else if (length(unique(assignment_names_in_po)) != 
+             length(unique(assignment_names_in_estimator))) {
     message_list_temp[[message_index]] <-
       paste0(message_index, ". Conflict in names of assignment variables with message: \n",
              "Names of assignment variables are not the same in potential outcomes and estimates declaration \n")
     message_index <- message_index + 1
-  } else if ( !all(grepl(unique(assignment_variable_names_in_estimator), estimand_labels)) ) {
+  } else if ( !all(grepl(unique(assignment_names_in_estimator), estimator_estimand_labels)) ) {
     message_list_temp[[message_index]] <-
       paste0(message_index, ". Conflict between names of assignment variables and estimand definition with message: \n",
              "Names of assignment variables do not match names used in estimand definition \n")
@@ -225,3 +227,13 @@ read_error <- function(error_list, message_list){
   return(message_list)
 }
 
+#' @export
+recursive_unlist <- function(x, tree_names, simplify = TRUE) {
+  if (is.list(x[[tree_names[1]]]) & length(tree_names) > 0) {
+    sapply(x[[tree_names[1]]], recursive_unlist, tree_names = tree_names[-1], simplify = simplify)
+  } else if (length(tree_names) > 0) {
+    return(x[[tree_names[1]]])
+  } else if (length(tree_names) == 0) {
+    return(x)
+  }
+}
