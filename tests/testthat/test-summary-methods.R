@@ -133,3 +133,57 @@ potential_outcomes <- declare_potential_outcomes(condition_names = c("Z0", "Z1")
 test_that("summary of potential outcomes using custom function works ",{
   expect_silent(summary(potential_outcomes))
 })
+
+
+
+
+# NEW STUFF FOR POs ---------------------------------------------------------------------------
+
+
+## Declare potential outcomes using potential_outcomes_function
+
+population <- declare_population(noise = "rnorm(n_)", size = 250)
+
+my_potential_outcomes <- function(data) { with(data, Z * 0.25 + noise) }
+
+potential_outcomes <- declare_potential_outcomes(potential_outcomes_function = my_potential_outcomes,
+                                                 outcome_variable_name = 'Y',
+                                                 condition_names = c(0, 1))
+
+summary(potential_outcomes)
+
+## Declare potential outcomes using formula
+
+population <- declare_population(noise = "rnorm(n_)", size = 250)
+
+potential_outcomes <- declare_potential_outcomes(formula = Y ~ 0.25 * Z + noise,
+                                                 condition_names = c(0, 1),
+                                                 assignment_variable_name = "Z")
+
+summary(potential_outcomes)
+
+## Multiple treatments !!!
+
+population <- declare_population(noise = "rnorm(n_)", size = 250)
+
+potential_outcomes <- declare_potential_outcomes(formula = Y ~ 5 + 1*Z1 + 2*Z2 - 3*Z1*Z2 + noise,
+                                                 condition_names = list(Z1 = c(0, 1), 
+                                                                        Z2 = c(0, 1)),
+                                                 assignment_variable_name = c("Z1", "Z2"))
+
+summary(potential_outcomes)
+
+## Multiple potential outcomes !!!
+
+population <- declare_population(noise = "rnorm(n_)", size = 250)
+
+potential_outcomes_1 <- declare_potential_outcomes(formula = Y ~ 5 + .5*Z*rnorm(n_) + noise,
+                                                    condition_names = c(0, 1),
+                                                    assignment_variable_name = "Z")
+
+potential_outcomes_2 <- declare_potential_outcomes(formula = Y2 ~ 5 + .25*Z + noise,
+                                                    inherit_condition_names = TRUE,
+                                                    assignment_variable_name = "Z")
+
+summary(list(potential_outcomes_1, potential_outcomes_2))[]
+

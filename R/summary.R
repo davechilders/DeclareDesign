@@ -90,11 +90,11 @@ print.summary.design <- function(x, ...){
 #'
 #' Summary method for population object created by \code{\link{declare_population}}.
 #'
-#' @param object a population object as created by \code{\link{declare_population}}.
-#' @param extended logical; Whether to print extended summary, including variable summary statistics and levels. Default is \code{FALSE}.
-#' @param stat_list if \code{extended = TRUE}, a list of named summary statistics, which should be reported for each variable declared in population. By default returns \code{min}, \code{max}, \code{mean}, \code{median} and \code{sd}.
-#' @param digits number of decimal points to prin for summary statistics. Default is 2.
-#' @param ... further arguments passed to or from other methods.
+#' @param object A population object as created by \code{\link{declare_population}}.
+#' @param extended Logical. Whether to print extended summary, including variable summary statistics and levels. Default is \code{TRUE}.
+#' @param stat_list If \code{extended = TRUE}, a list of named summary statistics, which should be reported for each variable declared in population. By default returns \code{min}, \code{max}, \code{mean}, \code{median} and \code{sd}.
+#' @param digits Integer. Number of decimal points to prin for summary statistics. Default is 2.
+#' @param ... Further arguments passed to or from other methods.
 #'
 #' @return List with two elements. \code{text} contains text explanation of population structure. \code{stat} contains named matrix of summary statistics specified in \code{stat_list}.
 #' @examples
@@ -102,7 +102,7 @@ print.summary.design <- function(x, ...){
 #' 
 #' @export
 
-summary.population <- function(object, extended = FALSE, 
+summary.population <- function(object, extended = TRUE, 
                                stat_list = list(max = max,
                                                 min = min,
                                                 mean = mean,
