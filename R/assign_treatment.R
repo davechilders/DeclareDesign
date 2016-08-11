@@ -154,7 +154,7 @@ get_observed_assignment_probabilities <- function(data, assignment_variable_name
   # Checks -------------------------------------------------
   assignment <- clean_inputs(assignment, "assignment", accepts_list = FALSE)
   
-  return(assignment$assignment_probability_function(data = data))
+  return(assignment$assignment_probability_function(data = data, assignment_variable_name = assignment_variable_name))
   
 }
 

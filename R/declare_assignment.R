@@ -196,10 +196,17 @@ declare_assignment <-
     if(!is.null(condition_names) & "condition_names" %in% argument_names)
       assignment_probability_function_options$condition_names <- condition_names
     
-    assignment_probability_function_internal <- function(data){
+    assignment_variable_name_declared <- assignment_variable_name
+    
+    assignment_probability_function_internal <- function(data, assignment_variable_name){
       ## the restriction here is that you must have an option in your custom assignment probability
       ## function called 'assignment' that takes a vector of assignments
       ## note this in documentation
+      
+      if(is.null(assignment_variable_name)){
+        assignment_variable_name <- assignment_variable_name_declared
+      }
+      
       if("assignment" %in% argument_names)
         assignment_probability_function_options$assignment <- data[, assignment_variable_name]
       
