@@ -130,4 +130,5 @@ test_that("summary of population works", {
                                                    potential_outcomes_function = my_potential_outcomes,
                                                    outcome_variable_name = "Y")
   
+  summary(potential_outcomes)
 })

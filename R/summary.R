@@ -120,15 +120,15 @@ summary.population <- function(object, extended = FALSE,
                             ifelse(length(size) > 1, level_sizes, paste(size, "units")), ".")
     
     data <- draw_population(object)
-    var_stucture <- get_variable_names(object$population)
+    var_structure <- environment(object$population)$expressions
     extended_text <- 
-      paste0("\n\nVariable summary\n",
-             paste(sapply(names(var_stucture), 
-                          FUN = function(x) if (length(var_stucture[[x]]) != 0) { 
+      paste0("\n\nVariable summary (summary statistics for one draw of population)\n\n",
+             paste(sapply(names(var_structure), 
+                          FUN = function(x) if (length(var_structure[[x]]) != 0) { 
                             paste(
-                              ifelse(length(var_stucture[[x]]) == 1, "variable", "variables"), 
-                              paste(var_stucture[[x]], collapse = ", "), 
-                              ifelse(length(var_stucture[[x]]) == 1, "changes", "change"),
+                              ifelse(length(var_structure[[x]]) == 1, "variable", "variables"), 
+                              paste(names(var_structure[[x]]), collapse = ", "), 
+                              ifelse(length(var_structure[[x]]) == 1, "changes", "change"),
                               "at the level of the", x) 
                           } else {
                             paste("no variables change at the level of the", x)
@@ -149,13 +149,14 @@ summary.population <- function(object, extended = FALSE,
       data <- environment(object$population)$data_internal
       extended_text <- 
         summary_text(data = data,
+                     pre = "\n\nVariable summary (summary statistics for user-provided data)\n\n",
                      mid = "specified via user data:")
       
     } else if (is.null(environment(object$population)$data_internal)) {
       data <- draw_population(object)
       extended_text <- 
         summary_text(data = draw_population(object),
-                     pre = "\n\nVariable summary (summary statistics from 1 draw of population)\n",
+                     pre = "\n\nVariable summary (summary statistics for one draw of population)\n\n",
                      mid = "specified via custom population function:")
     }
   }
@@ -169,9 +170,19 @@ summary.population <- function(object, extended = FALSE,
                          stat_list = stat_list), 
             digits = digits)
     
-    structure(list(text = paste0(short_text,extended_text), 
-                   stat = variable_summaries), 
-              class = c("summary.population", "population", "extended"))
+    if (!is.null(environment(object$population)$expressions)) {
+      code_summary <- 
+        paste0(names(flatten_list(var_structure)), " <- ", flatten_list(var_structure))
+      
+      structure(list(text = paste0(short_text,extended_text), 
+                     stat = variable_summaries,
+                     code = code_summary), 
+                class = c("summary.population", "population", "extended"))
+    } else {
+      structure(list(text = paste0(short_text,extended_text), 
+                     stat = variable_summaries), 
+                class = c("summary.population", "population", "extended"))
+    }
   } else {
     stop("Please provide at least one summary statistic in stat_list.")
   }
@@ -180,7 +191,9 @@ summary.population <- function(object, extended = FALSE,
 #' @export
 print.summary.population <- function(x, ...){
   if ("extended" %in% class(x)) { 
-    cat(x$text) ; print(x$stat) 
+    cat(x$text) 
+    print(x$stat) 
+    if (!is.null(x$code)) cat("\n\nVariable declaraions\n", x$code, sep = "\n")
   } else {
     cat(x$text)
   }
@@ -193,13 +206,15 @@ print.summary.population <- function(x, ...){
 #' @export
 summary.potential_outcomes <- function(object, ...) {
   object <- clean_inputs(object, "potential_outcomes", accepts_list = TRUE)
+  
   summary_text <- list()
+  
   for(i in 1:length(object)){
     if("formula" %in% ls(environment(object[[i]]$potential_outcomes_function))){
       formula <- formula_as_character(get("formula", envir = environment(object[[i]]$potential_outcomes_function)))
     }
     summary_text[[i]] <- paste0("An outcome ", object[[i]]$outcome_variable_name, " is defined ",
-                                ifelse(!exists("formula"), "by a custom function", paste0("the formula ", formula)),
+                                ifelse(!exists("formula"), "by a custom function", paste0("by the formula ", formula)),
                                 ".")
   }
   summary_text <- do.call(paste0, summary_text)
@@ -298,6 +313,15 @@ print.summary.estimator <- function(x, ...){
 # USED FUNCTIONS ------------------------------------------------------------------------------
 
 #' @export
+flatten_list <- function(list) {
+  if (is.list(list)) {
+    lapply(list, flatten_list) 
+  } else {
+    enquote(list)
+  }
+}
+
+#' @export
 summary_text <- function(data, 
                          pre = "\n\nVariable summary\n", 
                          mid = "specified via user data:", 
@@ -320,15 +344,6 @@ multi.sapply <- function(data,stat_list) {
   result <- sapply(stat_list, function (FUN, x) sapply(x, FUN), x = data)
   colnames(result) <- var.names
   return(result)
-}
-
-#' @export
-get_variable_names <- function(population){
-  level_expressions <- get("expressions", envir = environment(population))
-  return(
-    sapply(names(level_expressions), 
-           FUN = function(x) names(level_expressions[[x]]) )
-  )
 }
 
 #' @export
