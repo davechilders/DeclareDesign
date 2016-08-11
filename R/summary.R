@@ -162,9 +162,10 @@ summary.population <- function(object, extended = FALSE,
   }
   
   if (!extended) {
-    structure(list(text = short_text), class = c("summary.population", "population"))
+    summary_text <- short_text
+    structure(list(summary_text = summary_text), class = c("summary.population", "population"))
   } else if (extended & length(stat_list) != 0) {
-    
+    summary_text <- paste0(short_text,extended_text)
     variable_summaries <- 
       round(multi.sapply(data = data[,!grepl("ID", names(data), ignore.case = TRUE)],
                          stat_list = stat_list), 
@@ -174,7 +175,7 @@ summary.population <- function(object, extended = FALSE,
       code_summary <- 
         paste0(names(flatten_list(var_structure)), " <- ", flatten_list(var_structure))
       
-      structure(list(text = paste0(short_text,extended_text), 
+      structure(list(summary_text = summary_text, 
                      stat = variable_summaries,
                      code = code_summary), 
                 class = c("summary.population", "population", "extended"))
@@ -191,11 +192,11 @@ summary.population <- function(object, extended = FALSE,
 #' @export
 print.summary.population <- function(x, ...){
   if ("extended" %in% class(x)) { 
-    cat(x$text) 
+    cat(x$summary_text) 
     print(x$stat) 
     if (!is.null(x$code)) cat("\n\nVariable declaraions\n", x$code, sep = "\n")
   } else {
-    cat(x$text)
+    cat(x$summary_text)
   }
   class(x) <- "list"
   invisible(x)
@@ -208,15 +209,29 @@ summary.potential_outcomes <- function(object, ...) {
   object <- clean_inputs(object, "potential_outcomes", accepts_list = TRUE)
   
   summary_text <- list()
-  
+  text
   for(i in 1:length(object)){
-    if("formula" %in% ls(environment(object[[i]]$potential_outcomes_function))){
-      formula <- formula_as_character(get("formula", envir = environment(object[[i]]$potential_outcomes_function)))
+    if ( 
+      ("formula" %in% ls(environment(object[[i]]$potential_outcomes_function))) & 
+      !is.null(environment(object[[i]]$potential_outcomes_function)$formula) 
+    ){
+      po_formula <- 
+        formula_as_character(get("formula", 
+                                 envir = environment(object[[i]]$potential_outcomes_function)))
+      
+      summary_text[[i]] <- paste0("An outcome ", object[[i]]$outcome_variable_name, 
+                                  " is defined by the formula:\n\n", po_formula)
+    } else if ( 
+      ("formula" %in% ls(environment(object[[i]]$potential_outcomes_function))) &
+      !is.null(environment(object[[i]]$potential_outcomes_function)$potential_outcomes_function) 
+    ) {
+      summary_text[[i]] <- 
+        paste0("An outcome ", object[[i]]$outcome_variable_name, 
+               " is defined by a custom function:\n\n",
+               paste0(deparse(environment(object[[i]]$potential_outcomes_function)$potential_outcomes_function), collapse = " "))
     }
-    summary_text[[i]] <- paste0("An outcome ", object[[i]]$outcome_variable_name, " is defined ",
-                                ifelse(!exists("formula"), "by a custom function", paste0("by the formula ", formula)),
-                                ".")
-  }
+  } 
+  
   summary_text <- do.call(paste0, summary_text)
   structure(summary_text, class = c("summary.potential_outcomes", "potential_outcomes"))
 }
@@ -225,6 +240,7 @@ summary.potential_outcomes <- function(object, ...) {
 #' @export
 print.summary.potential_outcomes <- function(x, ...){
   cat(x)
+  invisible(x)
 }
 
 

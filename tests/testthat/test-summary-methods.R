@@ -103,32 +103,33 @@ test_that("summary of population with user-provided data and custom resampling f
   expect_true(any(!(class(summary(pop4, extended = TRUE)) %in% class(summary(pop4)))))
 })
 
+# standard way
 
-test_that("summary of population works", {
-  
-  # standard way
-  
-  population <- declare_population(individuals = list(noise = "rnorm(n_)",
-                                                      ideo_3 = "sample(c('Liberal', 'Moderate', 'Conservative'), size = n_, prob = c(.2, .3, .5), replace = T)"),
-                                   villages = list(elevation = "rnorm(n_)",
-                                                   high_elevation = "1*(elevation > 0)"), 
-                                   size = c(1000, 100))
-  
-  potential_outcomes <- 
-    declare_potential_outcomes(formula = Y ~ 5 + .5*(Z==1) + .9*(Z==2) + .2*Z*elevation + noise,
-                               condition_names = c(0, 1, 2),
-                               assignment_variable_name = "Z")
-  
-  summary(potential_outcomes)
-  
-  # custom potential outcomes
-  
-  population      <- declare_population(noise = declare_variable(), size = 100)
-  
-  my_potential_outcomes <- function(data) { (data$Z == "Z1") * 0.25 + runif(nrow(data)) }
-  potential_outcomes <- declare_potential_outcomes(condition_names = c("Z0", "Z1"), 
-                                                   potential_outcomes_function = my_potential_outcomes,
-                                                   outcome_variable_name = "Y")
-  
-  summary(potential_outcomes)
+population <- declare_population(individuals = list(noise = "rnorm(n_)",
+                                                    ideo_3 = "sample(c('Liberal', 'Moderate', 'Conservative'), size = n_, prob = c(.2, .3, .5), replace = T)"),
+                                 villages = list(elevation = "rnorm(n_)",
+                                                 high_elevation = "1*(elevation > 0)"), 
+                                 size = c(1000, 100))
+
+potential_outcomes <- 
+  declare_potential_outcomes(formula = Y ~ 5 + .5*(Z==1) + .9*(Z==2) + .2*Z*elevation + noise,
+                             condition_names = c(0, 1, 2),
+                             assignment_variable_name = "Z")
+
+
+test_that("summary of potantial outcomes works", {
+  expect_silent(summary(potential_outcomes))
+})
+
+# custom potential outcomes
+
+population      <- declare_population(noise = declare_variable(), size = 100)
+
+my_potential_outcomes <- function(data) { (data$Z == "Z1") * 0.25 + runif(nrow(data)) }
+potential_outcomes <- declare_potential_outcomes(condition_names = c("Z0", "Z1"), 
+                                                 potential_outcomes_function = my_potential_outcomes,
+                                                 outcome_variable_name = "Y")
+
+test_that("summary of potential outcomes using custom function works ",{
+  expect_silent(summary(potential_outcomes))
 })
