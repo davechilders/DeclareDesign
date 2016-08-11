@@ -20,39 +20,45 @@ draw_sample <- function(data, sampling = NULL) {
   
   sampling <- clean_inputs(sampling, object_class = "sampling", accepts_list = FALSE)
   
-  # Construct strata and clusters if custom functions --------------------------------------------------
-  
-  if(!is.null(sampling$clustering_function)){
-    data[, sampling$cluster_variable_name] <- sampling$clustering_function(data = data)
-  }
-  
-  if(!is.null(sampling$stratification_function)) { 
-    data[, sampling$strata_variable_name] <- sampling$stratification_function(data = data)
-  }
-  
-  # Draw the sample ------------------------------------------------------
-  
-  S <- draw_sample_indicator(data = data, sampling = sampling)
-  
-  if(!is.null(sampling$sampling_probability_function)){
-    inclusion_probabilities <- get_sampling_probabilities(data = data, sampling = sampling)
-    sampling_data <- data.frame(sampled = S, 
-                                inclusion_probabilities = inclusion_probabilities, 
-                                sampling_weights = 1/inclusion_probabilities)
+  if(sampling$sampling == TRUE){
+    
+    # Construct strata and clusters if custom functions --------------------------------------------------
+    
+    if(!is.null(sampling$clustering_function)){
+      data[, sampling$cluster_variable_name] <- sampling$clustering_function(data = data)
+    }
+    
+    if(!is.null(sampling$stratification_function)) { 
+      data[, sampling$strata_variable_name] <- sampling$stratification_function(data = data)
+    }
+    
+    # Draw the sample ------------------------------------------------------
+    
+    S <- draw_sample_indicator(data = data, sampling = sampling)
+    
+    if(!is.null(sampling$sampling_probability_function)){
+      inclusion_probabilities <- get_sampling_probabilities(data = data, sampling = sampling)
+      sampling_data <- data.frame(sampled = S, 
+                                  inclusion_probabilities = inclusion_probabilities, 
+                                  sampling_weights = 1/inclusion_probabilities)
+    } else {
+      sampling_data <- data.frame(sampled = S, 
+                                  inclusion_probabilities = "unknown", 
+                                  sampling_weights = 1)
+    }
+    
+    data <- data.frame(data, sampling_data)
+    
+    sample_data <- data[data$sampled == 1, ]
+    sample_data$sampled <- NULL
+    
+    return(sample_data)
+    
   } else {
-    sampling_data <- data.frame(sampled = S, 
-                                inclusion_probabilities = "unknown", 
-                                sampling_weights = 1)
+    
+    return(data)
+    
   }
-  
-  data <- data.frame(data, sampling_data)
-  
-  sample_data <- data[data$sampled == 1, ]
-  sample_data$sampled <- NULL
-  
-  # Return data -------------------------------------------------------------
-  
-  return(sample_data)
   
 }
 
@@ -79,7 +85,13 @@ draw_sample_indicator <- function(data, sampling) {
   
   sampling <- clean_inputs(sampling, object_class = "sampling", accepts_list = FALSE)
   
-  return(sampling$sampling_function(data = data))
+  if(sampling$sampling == TRUE){
+    S <- sampling$sampling_function(data = data)
+  } else {
+    S <- rep(1, nrow(data))
+  }
+  
+  return(S)
   
 }
 

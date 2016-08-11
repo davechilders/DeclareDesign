@@ -4,7 +4,7 @@
 \alias{declare_sampling}
 \title{Declare the experimental sampling}
 \usage{
-declare_sampling(sampling_function = draw_rs,
+declare_sampling(sampling = TRUE, sampling_function = draw_rs,
   sampling_probability_function = obtain_inclusion_probabilities,
   sampling_variable_name = "S", stratafication_function = NULL,
   clustering_function = NULL, existing_sampling_variable_name = NULL,

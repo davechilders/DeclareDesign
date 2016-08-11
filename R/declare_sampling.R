@@ -132,7 +132,8 @@
 #' with(smp_draw, table(Z14, high_elevation))
 #' @export
 declare_sampling <- 
-  function(sampling_function = draw_rs,
+  function(sampling = TRUE,
+           sampling_function = draw_rs,
            sampling_probability_function = obtain_inclusion_probabilities,
            sampling_variable_name = "S",
            stratafication_function = NULL,
@@ -170,12 +171,14 @@ declare_sampling <-
         sampling_function = sampling_function_internal,
         sampling_probability_function = sampling_probability_function_internal,
         sampling_variable_name = sampling_variable_name,
+        sampling = sampling,
         description = description,
         call = match.call())
     } else {
       return.object <- list(
         existing_sampling_variable_name = existing_sampling_variable_name,
         sampling_variable_name = sampling_variable_name,
+        sampling = sampling,
         description = description,
         call = match.call())
     }

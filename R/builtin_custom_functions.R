@@ -29,7 +29,8 @@ default_interference_function <- function(data, options, assignment_variable_nam
 
 # Default transform function ----------------------------------------------
 
-default_transform_function <- function(data, options, assignment_variable_name){
+default_transform_function <- function(data, ..., assignment_variable_name){
+  options <- list(...)
   if(!is.null(options)){
     for(i in 1:length(options)){
       data[, names(options)[i]] <- as.numeric(data[, assignment_variable_name] %in% options[[i]])
