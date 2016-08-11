@@ -17,7 +17,10 @@ Depends:
 Imports:
     foreach,
     doRNG,
-    randomizr
+    randomizr,
+    ggplot2,
+    ggthemes,
+    plyr
 Suggests:
     testthat,
     dplyr,
