@@ -50,12 +50,13 @@ plot.diagnosis <- function(x, type = "coverage",...) {
       
       names(x$simulations)[ci_search] <- c("ci_lower", "ci_upper")
       
+      x$simulations$Estimand <- paste(x$simulations$estimand_level, 
+                                      x$simulations$estimand_label)
+      
       x$simulations <- rename(df = x$simulations, 
-                              from = c("estimand_label",
-                                       "estimator_label",
+                              from = c("estimator_label",
                                        "estimate_label"),
-                              to = c("Estimand",
-                                     "Estimator",
+                              to = c("Estimator",
                                      "Estimate"))
       
       dat_cov <- 
