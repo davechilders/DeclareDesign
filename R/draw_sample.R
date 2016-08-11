@@ -25,11 +25,11 @@ draw_sample <- function(data, sampling = NULL) {
     # Construct strata and clusters if custom functions --------------------------------------------------
     
     if(!is.null(sampling$clustering_function)){
-      data[, sampling$cluster_variable_name] <- sampling$clustering_function(data = data)
+      data <- sampling$clustering_function(data = data)
     }
     
     if(!is.null(sampling$stratification_function)) { 
-      data[, sampling$strata_variable_name] <- sampling$stratification_function(data = data)
+      data <- sampling$stratification_function(data = data)
     }
     
     # Draw the sample ------------------------------------------------------

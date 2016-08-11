@@ -5,7 +5,7 @@
 #' @param sampling_probability_function A function of data that returns an sampling vector of length n.
 #' @param condition_names A vector describing the conditions to which subjects can be assigned. Alternatively, condition_names can be obtained from a potential_outcomes object. 
 #' @param potential_outcomes potential_outcomes object, as created by \code{\link{declare_potential_outcomes}}. The conditions to which subjects can be assigned is obtained from the condition_names stored in a potential outcomes object.  If you prefer, you can use the condition_names argument.
-#' @param strata_variable_name The name of the variable according to which strata random sampling should be conducted.
+#' @param strata_var The name of the variable according to which strata random sampling should be conducted.
 #' @param cluster_variable_name The name of the variable according to which clustered random sampling should be conducted.
 #' @param baseline_condition The value of condition_names that represents the "baseline" condition.  This is the condition against which treatment effects will be assessed. Defaults to the first value of condition_names.
 #' @param sampling_variable_name The name of the treatment variable.  Defaults to "Z"
@@ -48,12 +48,12 @@
 #' 
 #' # strataed samplings
 #' sampling_6 <- declare_sampling(potential_outcomes = potential_outcomes, 
-#'                                    strata_variable_name = "ideo_3")
+#'                                    strata_var = "ideo_3")
 #' sampling_7 <- declare_sampling(potential_outcomes = potential_outcomes, 
-#'                                    strata_variable_name = "ideo_3", 
+#'                                    strata_var = "ideo_3", 
 #'                                    probability_each = c(.3, .6, .1))
 #' sampling_8 <- declare_sampling(potential_outcomes = potential_outcomes, 
-#'                                    strata_variable_name = "ideo_3", 
+#'                                    strata_var = "ideo_3", 
 #'                                    condition_names = c(0, 1))
 #' 
 #' strata_probabilities <- rbind(c(.1, .2, .7),
@@ -62,7 +62,7 @@
 #'                     c(.7, .1, .2),
 #'                     c(.2, .1, .7))
 #' sampling_8.5 <- declare_sampling(potential_outcomes = potential_outcomes, 
-#'                                      strata_variable_name = "ideo_3",
+#'                                      strata_var = "ideo_3",
 #'                                      strata_probabilities = strata_probabilities)
 #' 
 #' # Clustered samplings 
@@ -78,14 +78,14 @@
 #' # strataed and Clustered samplings
 #' sampling_12 <- declare_sampling(potential_outcomes = potential_outcomes, 
 #'                                     cluster_variable_name = "villages_ID", 
-#'                                     strata_variable_name = "high_elevation")
+#'                                     strata_var = "high_elevation")
 #' sampling_13 <- declare_sampling(potential_outcomes = potential_outcomes, 
 #'                                     cluster_variable_name = "villages_ID", 
-#'                                     strata_variable_name = "high_elevation", 
+#'                                     strata_var = "high_elevation", 
 #'                                     condition_names = c(0,1))
 #' sampling_14 <- declare_sampling(potential_outcomes = potential_outcomes, 
 #'                                     cluster_variable_name = "villages_ID", 
-#'                                     strata_variable_name = "high_elevation", 
+#'                                     strata_var = "high_elevation", 
 #'                                     probability_each = c(.1, .3, .6))
 #' 
 #' # Draw Data

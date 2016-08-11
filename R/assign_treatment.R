@@ -30,11 +30,11 @@ assign_treatment <- function(data, assignment) {
     # Make clusters and blocks ------------------------------------------------  
     
     if(!is.null(assignment[[i]]$clustering_function)){
-      data[, assignment[[i]]$cluster_variable_name] <- assignment[[i]]$clustering_function(data = data)
+      data <- assignment[[i]]$clustering_function(data = data)
     }
     
     if(!is.null(assignment[[i]]$blocking_function)) { 
-      data[, assignment[[i]]$block_variable_name] <- assignment[[i]]$blocking_function(data = data)
+      data <- assignment[[i]]$blocking_function(data = data)
     }
     
     # Assign treatment and reveal outcomes ------------------------------------------------  

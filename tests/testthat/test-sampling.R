@@ -19,9 +19,9 @@ test_that("test sampling functions", {
   sampling_2 <- declare_sampling(n = 100)
   
   # Blocked samplings
-  sampling_3 <- declare_sampling(strata_variable_name = "ideo_3")
-  sampling_4 <- declare_sampling(strata_variable_name = "ideo_3", strata_n = c(35, 40, 45))
-  sampling_5 <- declare_sampling(strata_variable_name = "ideo_3", strata_probabilities = c(.1, .2, .3))
+  sampling_3 <- declare_sampling(strata_var = "ideo_3")
+  sampling_4 <- declare_sampling(strata_var = "ideo_3", strata_n = c(35, 40, 45))
+  sampling_5 <- declare_sampling(strata_var = "ideo_3", strata_probabilities = c(.1, .2, .3))
   
   # Clustered samplings 
   sampling_6 <- declare_sampling(cluster_variable_name = "villages_ID")
@@ -30,12 +30,12 @@ test_that("test sampling functions", {
   
   # Blocked and Clustered samplings
   sampling_9 <- declare_sampling(cluster_variable_name = "villages_ID", 
-                                 strata_variable_name = "high_elevation")
+                                 strata_var = "high_elevation")
   sampling_10 <- declare_sampling(cluster_variable_name = "villages_ID", 
-                                  strata_variable_name = "high_elevation", 
+                                  strata_var = "high_elevation", 
                                   strata_probabilities = c(.1, .9))
   sampling_11 <- declare_sampling(cluster_variable_name = "villages_ID", 
-                                  strata_variable_name = "high_elevation", 
+                                  strata_var = "high_elevation", 
                                   strata_n = c(2, 2))
   
   # No Sampling
