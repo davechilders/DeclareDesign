@@ -16,7 +16,10 @@ Depends:
     R (>= 3.3.0)
 Imports:
     foreach,
-    doRNG
+    doRNG,
+    ggplot2,
+    ggthemes,
+    plyr
 Suggests:
     testthat,
     dplyr,
