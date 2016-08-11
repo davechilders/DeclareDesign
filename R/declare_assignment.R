@@ -152,8 +152,11 @@ declare_assignment <-
       transform_function <- NULL
     }
     
-    if(is.null(potential_outcomes$condition_names) & is.null(condition_names)){
-      stop("Please provide an input to condition_names or a potential_outcomes object with condition_names.")
+    if(!(substitute(assignment_function) == "conduct_ra" &
+         getNamespaceName(environment(assignment_function)) == "randomizr") & 
+       (substitute(assignment_probability_function) == "obtain_condition_probabilities" &
+        getNamespaceName(environment(assignment_probability_function)) == "randomizr")){
+      assignment_probability_function <- NULL
     }
     
     # Checks -------------------------------------------------
@@ -177,13 +180,15 @@ declare_assignment <-
     } 
     
     assignment_function_options <- eval(substitute(alist(...)))
-    argument_names <- names(formals(assignment_function))
-    if(!is.null(condition_names) & "condition_names" %in% argument_names)
+    argument_names_assignment_function <- names(formals(assignment_function))
+    if(!is.null(condition_names) & "condition_names" %in% argument_names_assignment_function)
       assignment_function_options$condition_names <- condition_names
     
     assignment_function_internal <- function(data){
-      if("N" %in% argument_names & !("N" %in% assignment_function_options))
+      if("N" %in% argument_names_assignment_function & 
+         !("N" %in% assignment_function_options)){
         assignment_function_options$N <- nrow(data)
+      }
       
       data_environment <- list2env(data)
       data_environment$n_ <- nrow(data)
@@ -192,9 +197,10 @@ declare_assignment <-
     }
     
     assignment_probability_function_options <- eval(substitute(alist(...)))
-    argument_names <- names(formals(assignment_probability_function))
-    if(!is.null(condition_names) & "condition_names" %in% argument_names)
+    argument_names_assignment_probability_function <- names(formals(assignment_probability_function))
+    if(!is.null(condition_names) & "condition_names" %in% argument_names_assignment_probability_function){
       assignment_probability_function_options$condition_names <- condition_names
+    }
     
     assignment_variable_name_declared <- assignment_variable_name
     
@@ -207,7 +213,7 @@ declare_assignment <-
         assignment_variable_name <- assignment_variable_name_declared
       }
       
-      if("assignment" %in% argument_names)
+      if("assignment" %in% argument_names_assignment_probability_function)
         assignment_probability_function_options$assignment <- data[, assignment_variable_name]
       
       data_environment <- list2env(data)

@@ -17,6 +17,13 @@ test_that("test assignment and probability functions", {
   pop_draw <- draw_population(population = population)
   smp_draw <- draw_sample(data = pop_draw, sampling = sampling)
   
+  # Base R assignments
+  
+  
+  assignment_00 <- declare_assignment(assignment_function = rbinom, n = n_, size = 1, prob = .2)
+  
+  table(assign_treatment_indicator(data = smp_draw, assignment = assignment_00))
+  
   # Complete Random Assignment assignments
   assignment_0 <- declare_assignment(potential_outcomes = potential_outcomes)
   assignment_1 <- declare_assignment(potential_outcomes = potential_outcomes, condition_names = c(0, 1))
