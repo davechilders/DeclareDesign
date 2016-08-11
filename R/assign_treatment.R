@@ -29,54 +29,65 @@ assign_treatment <- function(data, assignment) {
     
     # Make clusters and blocks ------------------------------------------------  
     
-    if(!is.null(assignment[[i]]$custom_clustering_function)){
-      data[, assignment[[i]]$cluster_variable_name] <- assignment[[i]]$custom_clustering_function(data = data)
+    if(!is.null(assignment[[i]]$clustering_function)){
+      data[, assignment[[i]]$cluster_variable_name] <- assignment[[i]]$clustering_function(data = data)
     }
     
-    if(!is.null(assignment[[i]]$custom_blocking_function)) { 
-      data[, assignment[[i]]$block_variable_name] <- assignment[[i]]$custom_blocking_function(data = data)
+    if(!is.null(assignment[[i]]$blocking_function)) { 
+      data[, assignment[[i]]$block_variable_name] <- assignment[[i]]$blocking_function(data = data)
     }
     
     # Assign treatment and reveal outcomes ------------------------------------------------  
     
-    if(assignment[[i]]$assignment_type == "existing assignment"){
+    if(!is.null(assignment[[i]]$existing_assignment_variable_name)){
       data[, assignment[[i]]$assignment_variable_name] <- data[, assignment[[i]]$existing_assignment_variable_name]
+      data[, paste(assignment[[i]]$assignment_variable_name,"assignment_probabilities", sep="_")] <- 
+        data[, assignment[[i]]$existing_assignment_probabilities_variable_name]
+      data[, paste(assignment[[i]]$assignment_variable_name,"assignment_weights", sep="_")] <- 
+        1 / data[, assignment[[i]]$existing_assignment_probabilities_variable_name]
     } else {
       
       ## if the treatment is created using assign_treatment_indicator, rather than using an existing assignment variable
       
-      data[, assignment[[i]]$assignment_variable_name] <- assign_treatment_indicator(assignment = assignment[[i]], data = data)
+      data[, assignment[[i]]$assignment_variable_name] <- assign_treatment_indicator(assignment = assignment[[i]],
+                                                                                     data = data)
       
-      if(assignment[[i]]$assignment_type != "custom" & assignment[[i]]$assignment_type != "existing assignment") {
+      if(!is.null(assignment[[i]]$assignment_probability_function)){
+        data[, paste(assignment[[i]]$assignment_variable_name,"assignment_probabilities", sep="_")] <- 
+          get_observed_assignment_probabilities(assignment_variable_name = assignment[[i]]$assignment_variable_name,
+                                                assignment = assignment[[i]], data = data)
+        data[, paste(assignment[[i]]$assignment_variable_name,"assignment_weights", sep="_")] <- 
+          1/data[, paste(assignment[[i]]$assignment_variable_name, "assignment_probabilities", sep="_")]
+      } else {
+        data[, paste(assignment[[i]]$assignment_variable_name,"assignment_probabilities", sep="_")] <- "unknown"
+        data[, paste(assignment[[i]]$assignment_variable_name,"assignment_weights", sep="_")] <- 1
+      }
+      
+      ## only reveal assignment_sampling_weights if there are sampling probabilities
+      if("inclusion_probabilities" %in% colnames(data)){
         
-        data[, paste(assignment[[i]]$assignment_variable_name,"assignment_probabilities", sep="_")] <- get_observed_assignment_probabilities(assignment_variable_name = assignment[[i]]$assignment_variable_name,
-                                                                                                                                             assignment = assignment[[i]], data = data)
+        data[, paste(assignment[[i]]$assignment_variable_name,"assignment_inclusion_probabilities", sep="_")] <- 
+          data[, paste(assignment[[i]]$assignment_variable_name, "assignment_probabilities", sep="_")] * 
+          data[, "inclusion_probabilities"]
         
-        data[, paste(assignment[[i]]$assignment_variable_name,"assignment_weights", sep="_")] <- 1/data[, paste(assignment[[i]]$assignment_variable_name, "assignment_probabilities", sep="_")]
-        
-        ## only reveal assignment_sampling_weights if there are sampling probabilities
-        if("inclusion_probabilities" %in% colnames(data)){
-          
-          data[, paste(assignment[[i]]$assignment_variable_name,"assignment_inclusion_probabilities", sep="_")] <- 
-            data[, paste(assignment[[i]]$assignment_variable_name, "assignment_probabilities", sep="_")] * data[, "inclusion_probabilities"]
-          
-          data[, paste(assignment[[i]]$assignment_variable_name, "assignment_sampling_weights", sep="_")] <- 
-            1/data[, paste(assignment[[i]]$assignment_variable_name, "assignment_inclusion_probabilities", sep="_")]
-        }
+        data[, paste(assignment[[i]]$assignment_variable_name, "assignment_sampling_weights", sep="_")] <- 
+          1/data[, paste(assignment[[i]]$assignment_variable_name, "assignment_inclusion_probabilities", sep="_")]
       }
     }
     
-    if(!is.null(assignment[[i]]$custom_transform_function) | !is.null(assignment[[i]]$transform_options)){
-      if(is.null(assignment[[i]]$custom_transform_function)){
-        data <- default_transform_function(data = data, options = assignment[[i]]$transform_options,
-                                           assignment_variable_name = assignment[[i]]$assignment_variable_name)
-      } else {
-        data <- assignment[[i]]$custom_transform_function(data = data, options = assignment[[i]]$transform_options,
-                                                          assignment_variable_name = assignment[[i]]$assignment_variable_name)
+    if(!is.null(assignment[[i]]$transform_function)){
+      # if !default_transform_function,  transform
+      if(is.null(assignment[[i]]$transform_options$assignment_variable_name) & 
+         "assignment_variable_name" %in% names(formals(assignment[[i]]$transform_function))){
+        assignment[[i]]$transform_options$assignment_variable_name <- assignment[[i]]$assignment_variable_name
       }
+      assignment[[i]]$transform_options$data <- data
+      
+      data <- do.call(assignment[[i]]$transform_function, args = assignment[[i]]$transform_options)
     }
     
   }
+  
   return(data)
   
 }
@@ -108,83 +119,8 @@ assign_treatment_indicator <- function(data, assignment) {
   # Checks -------------------------------------------------
   assignment <- clean_inputs(assignment, "assignment", accepts_list = FALSE)
   
-  ## should be expanded to take either a assignment object or a function
+  return(assignment$assignment_function(data = data))
   
-  N <- nrow(data)
-  
-  block_variable <- data[,assignment$block_variable_name]
-  cluster_variable <- data[,assignment$cluster_variable_name]
-  
-  condition_names <- assignment$condition_names
-  baseline_condition <- assignment$baseline_condition
-  m <- assignment$m
-  m_each <- assignment$m_each
-  probability_each <- assignment$probability_each
-  block_m <- assignment$block_m
-  block_m_each <- assignment$block_m_each
-  block_probabilities <- assignment$block_probabilities
-  assignment_type <- assignment$assignment_type
-  
-  # For custom random assignment functions
-  if(is.null(assignment_type)){
-    assignment_type <- "custom"
-  }
-  
-  if(!is.null(assignment$custom_assignment_function)){
-    if("data" %in% names(formals(assignment$custom_assignment_function))){
-      assignment$custom_assignment_function_options$data <- data
-    }
-    if("n_" %in% names(formals(assignment$custom_assignment_function))){
-      assignment$custom_assignment_function_options$n_ <- nrow(data)
-    }
-    
-      Z <- do.call(assignment$custom_assignment_function, 
-                   args = assignment$custom_assignment_function_options)
-  } 
-  
-  # For complete random assignment designs
-  if(assignment_type=="complete"){
-    Z <- complete_assignment(N = N,
-                             m = m,
-                             m_each = m_each,
-                             probability_each = probability_each, 
-                             condition_names = condition_names,
-                             baseline_condition=baseline_condition)
-  }
-  
-  # For block random assignment designs
-  if(assignment_type=="blocked"){
-    Z <- blocked_assignment(block_variable=block_variable, 
-                            block_m = block_m,
-                            block_m_each = block_m_each,
-                            probability_each = probability_each,
-                            block_probabilities=block_probabilities,
-                            condition_names = condition_names,
-                            baseline_condition=baseline_condition)
-  }
-  
-  # For cluster random assignment designs
-  if(assignment_type=="clustered"){
-    Z <- clustered_assignment(cluster_variable=cluster_variable, 
-                              m = m, 
-                              m_each = m_each,
-                              probability_each = probability_each,
-                              condition_names = condition_names,
-                              baseline_condition=baseline_condition)
-  }
-  
-  # For blocked and clustered random assignment designs
-  if(assignment_type=="blocked and clustered"){
-    Z <- blocked_and_clustered_assignment(cluster_variable=cluster_variable,
-                                          block_variable=block_variable, 
-                                          block_m_each=block_m_each,
-                                          block_probabilities=block_probabilities,
-                                          probability_each = probability_each,
-                                          condition_names = condition_names,
-                                          baseline_condition=baseline_condition)
-  }
-  
-  return(Z)
 }
 
 #' Reveal probabilties of assignment to realized treatment conditions
@@ -218,14 +154,8 @@ get_observed_assignment_probabilities <- function(data, assignment_variable_name
   # Checks -------------------------------------------------
   assignment <- clean_inputs(assignment, "assignment", accepts_list = FALSE)
   
-  prob_mat <- get_assignment_probabilities(assignment = assignment, data = data)
-  prob_obs <- rep(NA, nrow(data))
-  condition_names <- unique(data[,assignment_variable_name])
-  for(i in 1:length(condition_names)){
-    prob_obs[data[,assignment_variable_name]==condition_names[i]] <- 
-      prob_mat[data[,assignment_variable_name]==condition_names[i], paste0("prob_", condition_names[i])]
-  }
-  return(prob_obs)  
+  return(assignment$assignment_probability_function(data = data))
+  
 }
 
 

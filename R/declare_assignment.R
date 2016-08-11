@@ -132,28 +132,24 @@
 #' with(smp_draw, table(Z14, high_elevation))
 #' @export
 declare_assignment <- 
-  function(assignment_function = NULL,
-           assignment_probability_function = NULL,
+  function(assignment_function = conduct_ra,
+           assignment_probability_function = obtain_condition_probabilities,
            condition_names = NULL,
-           baseline_condition = NULL,
            assignment_variable_name = "Z",
-           block_variable_name = NULL, 
-           cluster_variable_name = NULL,
            potential_outcomes = NULL,
-           transform_function = NULL, 
+           transform_function = default_transform_function, 
            transform_options = NULL,
            blocking_function = NULL,
            clustering_function = NULL,
            existing_assignment_variable_name = NULL,
+           existing_assignment_probabilities_variable_name = NULL,
            description = NULL,
            ...) {
     
-    if(!is.null(blocking_function) & !is.character(block_variable_name)){
-      stop("If you supply a custom block function, you must supply the name of the block variable.")
-    }
-    
-    if(!is.null(clustering_function) & !is.character(cluster_variable_name)){
-      stop("If you supply a custom cluster function, you must supply the name of the cluster variable.")
+    if(substitute(transform_function) == "default_transform_function" &
+       getNamespaceName(environment(transform_function)) == "DeclareDesign" &
+       is.null(transform_options)){
+      transform_function <- NULL
     }
     
     if(is.null(potential_outcomes$condition_names) & is.null(condition_names)){
@@ -180,54 +176,45 @@ declare_assignment <-
       }
     } 
     
-    # Figure out baseline condition
-    if(!is.null(baseline_condition)){
-      if(!(baseline_condition %in% condition_names))
-        stop("The baseline treatment condition must match one of the treatment conditions specified in condition_names.")
-    }
-    if(is.null(baseline_condition)){
-      baseline_condition <- condition_names[1]
-    }
-    
-    assignment_function_options <- list(...)
-    argument_names <- names(formals(custom_assignment_function))
+    assignment_function_options <- eval(substitute(alist(...)))
+    argument_names <- names(formals(assignment_function))
     if(!is.null(condition_names) & "condition_names" %in% argument_names)
       assignment_function_options$condition_names <- condition_names
-    if(!is.null(block_variable_name) & "block_variable_name" %in% argument_names)
-      assignment_function_options$block_variable_name <- block_variable_name
-    if(!is.null(cluster_variable_name) & "cluster_variable_name" %in% argument_names)
-      assignment_function_options$cluster_variable_name <- cluster_variable_name
     
     assignment_function_internal <- function(data){
-      argument_names <- names(formals(model))
-      options_internal <- list()
-      if(!is.null(formula) & "formula" %in% argument_names)
-        options_internal$formula <- stats::formula(unclass(formula))
-      if(!is.null(subset) & "subset" %in% argument_names)
-        options_internal$subset <- with(data, eval(parse(text = subset)))
-      if(!is.null(weights_variable_name) & "weights" %in% argument_names)
-        options_internal$weights <- data[, weights_variable_name]
-      if(length(model_options) > 0){
-        for(i in 1:length(model_options)){
-          if(names(model_options)[[i]] %in% argument_names){
-            options_internal[[names(model_options)[[i]]]] <- model_options[[i]]
-          }
-        }
-      }
-      options_internal$data <- data
+      if("N" %in% argument_names & !("N" %in% assignment_function_options))
+        assignment_function_options$N <- nrow(data)
       
-      return(do.call(model, args = options_internal))
+      data_environment <- list2env(data)
+      data_environment$n_ <- nrow(data)
+      
+      do.call(assignment_function, args = assignment_function_options, envir = data_environment)
     }
     
+    assignment_probability_function_options <- eval(substitute(alist(...)))
+    argument_names <- names(formals(assignment_probability_function))
+    if(!is.null(condition_names) & "condition_names" %in% argument_names)
+      assignment_probability_function_options$condition_names <- condition_names
+    
+    assignment_probability_function_internal <- function(data){
+      ## the restriction here is that you must have an option in your custom assignment probability
+      ## function called 'assignment' that takes a vector of assignments
+      ## note this in documentation
+      if("assignment" %in% argument_names)
+        assignment_probability_function_options$assignment <- data[, assignment_variable_name]
+      
+      data_environment <- list2env(data)
+      data_environment$n_ <- nrow(data)
+      
+      do.call(assignment_probability_function, args = assignment_probability_function_options, envir = data_environment)
+    }
     
     if(is.null(existing_assignment_variable_name)) {
       return.object <- list(
-        assignment_function = assignment_function,
-        assignment_function_options = assignment_function_options,
+        assignment_function = assignment_function_internal,
+        assignment_probability_function = assignment_probability_function_internal,
         condition_names = condition_names,
-        baseline_condition = baseline_condition,
         assignment_variable_name = assignment_variable_name,
-        noncompliance = noncompliance,
         transform_function = transform_function, 
         transform_options = transform_options,
         description = description,
@@ -235,10 +222,9 @@ declare_assignment <-
     } else {
       return.object <- list(
         existing_assignment_variable_name = existing_assignment_variable_name,
+        existing_assignment_probabilities_variable_name = existing_assignment_probabilities_variable_name,
         condition_names = condition_names,
-        baseline_condition = baseline_condition,
         assignment_variable_name = assignment_variable_name,
-        noncompliance = noncompliance,
         transform_function = custom_transform_function, 
         transform_options = transform_options,
         description = description,

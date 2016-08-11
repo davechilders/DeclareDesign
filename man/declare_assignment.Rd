@@ -4,58 +4,46 @@
 \alias{declare_assignment}
 \title{Declare the experimental assignment}
 \usage{
-declare_assignment(condition_names = NULL, m = NULL, m_each = NULL,
-  probability_each = NULL, block_m = NULL, block_m_each = NULL,
-  block_probabilities = NULL, baseline_condition = NULL,
-  assignment_variable_name = "Z", block_variable_name = NULL,
-  cluster_variable_name = NULL, potential_outcomes = NULL,
-  noncompliance = NULL, custom_transform_function = NULL,
-  transform_options = NULL, custom_assignment_function = NULL,
-  custom_blocking_function = NULL, custom_clustering_function = NULL,
-  existing_assignment_variable_name = NULL, description = NULL, ...)
+declare_assignment(assignment_function = conduct_ra,
+  assignment_probability_function = obtain_condition_probabilities,
+  condition_names = NULL, assignment_variable_name = "Z",
+  potential_outcomes = NULL,
+  transform_function = default_transform_function, transform_options = NULL,
+  blocking_function = NULL, clustering_function = NULL,
+  existing_assignment_variable_name = NULL,
+  existing_assignment_probabilities_variable_name = NULL,
+  description = NULL, ...)
 }
 \arguments{
+\item{assignment_function}{A function of data that returns an assignment vector of length n.}
+
+\item{assignment_probability_function}{A function of data that returns an assignment vector of length n.}
+
 \item{condition_names}{A vector describing the conditions to which subjects can be assigned. Alternatively, condition_names can be obtained from a potential_outcomes object.}
-
-\item{m}{The number of units (or clusters) to be assigned to treatment in a two-arm trial.}
-
-\item{m_each}{A vector describing the number of units (or clusters) to be assigned to each treatment arm in a multi-arm trial.  Must sum to N (for individually randomized experments) or N_clusters (for cluster randomized experiments).}
-
-\item{probability_each}{A vector describing the probability of units (or clusters) being assigned to each treatment arm. Must sum to 1.}
-
-\item{block_m}{A vector describing the number of units to be assigned to treatment in each block in a two-arm trial.}
-
-\item{block_m_each}{A matrix with the same number of rows as blocks and the same number of columns as treatment arms. Cell entries are the number of units (or clusters) to be assigned to each treatment arm.}
-
-\item{block_probabilities}{A matrix with the same number of rows as blocks and the same number of columns as treatment arms. Cell entries are the probabilities of assignment to each treatment arm.}
-
-\item{baseline_condition}{The value of condition_names that represents the "baseline" condition.  This is the condition against which treatment effects will be assessed. Defaults to the first value of condition_names.}
 
 \item{assignment_variable_name}{The name of the treatment variable.  Defaults to "Z"}
 
-\item{block_variable_name}{The name of the variable according to which block random assignment should be conducted.}
-
-\item{cluster_variable_name}{The name of the variable according to which clustered random assignment should be conducted.}
-
 \item{potential_outcomes}{potential_outcomes object, as created by \code{\link{declare_potential_outcomes}}. The conditions to which subjects can be assigned is obtained from the condition_names stored in a potential outcomes object.  If you prefer, you can use the condition_names argument.}
 
-\item{noncompliance}{An optional noncomplinance object, as created by \code{\link{declare_noncompliance}}.}
-
-\item{custom_transform_function}{A function to transform assignments into one or more variables.}
+\item{transform_function}{A function to transform assignments into one or more variables.}
 
 \item{transform_options}{Options sent to the \code{custom_transform_function}.}
 
-\item{custom_assignment_function}{A function of data that returns an assignment vector of length n.}
+\item{blocking_function}{A function of data that returns a blocking vector of length n.}
 
-\item{custom_blocking_function}{A function of data that returns a blocking vector of length n.}
-
-\item{custom_clustering_function}{A function of data that returns a cluster vector of length n.}
+\item{clustering_function}{A function of data that returns a cluster vector of length n.}
 
 \item{existing_assignment_variable_name}{The name of an already-assigned treatment variable.}
 
 \item{description}{A description of the assignment procedure in words.}
 
-\item{...}{options passed to custom assignment function}
+\item{...}{options passed to assignment function and, if provided, the assignment probability function}
+
+\item{block_variable_name}{The name of the variable according to which block random assignment should be conducted.}
+
+\item{cluster_variable_name}{The name of the variable according to which clustered random assignment should be conducted.}
+
+\item{baseline_condition}{The value of condition_names that represents the "baseline" condition.  This is the condition against which treatment effects will be assessed. Defaults to the first value of condition_names.}
 }
 \value{
 assignment object

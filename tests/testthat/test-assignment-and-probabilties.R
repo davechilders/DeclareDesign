@@ -1,6 +1,3 @@
-rm(list=ls())
-library(testthat)
-library(DeclareDesign)
 
 context("Assignment and probability functions")
 
@@ -11,11 +8,14 @@ test_that("test assignment and probability functions", {
                                    villages = list(elevation = "rnorm(n_)",
                                                    high_elevation = "1*(elevation > 0)"), 
                                    size = c(1000, 100))
-  sampling <- declare_sampling(n = 10, cluster_variable_name = "villages_ID")
+  sampling <- declare_sampling(N = N_, m = 100)
   
   potential_outcomes <- declare_potential_outcomes(formula = Y ~ 5 + .5*(Z==1) + .9*(Z==2) + .2*Z*elevation + noise,
                                                    condition_names = c(0, 1, 2),
                                                    assignment_variable_name = "Z")
+  
+  pop_draw <- draw_population(population = population)
+  smp_draw <- draw_sample(data = pop_draw, sampling = sampling)
   
   # Complete Random Assignment assignments
   assignment_0 <- declare_assignment(potential_outcomes = potential_outcomes)
@@ -23,48 +23,70 @@ test_that("test assignment and probability functions", {
   assignment_2 <- declare_assignment(potential_outcomes = potential_outcomes, m = 60, condition_names = c(0, 1))
   assignment_3 <- declare_assignment(potential_outcomes = potential_outcomes, m_each =c(20, 30, 50))
   assignment_4 <- declare_assignment(potential_outcomes = potential_outcomes, m_each =c(20, 80), condition_names = c(0, 1))
-  assignment_5 <- declare_assignment(potential_outcomes = potential_outcomes, probability_each = c(.2, .3, .5))
+  assignment_5 <- declare_assignment(potential_outcomes = potential_outcomes, prob_each = c(.2, .3, .5))
+  
+  table(assign_treatment_indicator(data = smp_draw, assignment = assignment_0))
+  table(assign_treatment_indicator(data = smp_draw, assignment = assignment_1))
+  table(assign_treatment_indicator(data = smp_draw, assignment = assignment_2))
+  table(assign_treatment_indicator(data = smp_draw, assignment = assignment_3))
+  table(assign_treatment_indicator(data = smp_draw, assignment = assignment_4))
+  table(assign_treatment_indicator(data = smp_draw, assignment = assignment_5))
+  
   
   # Blocked assignments
-  assignment_6 <- declare_assignment(potential_outcomes = potential_outcomes, block_variable_name = "ideo_3")
-  assignment_7 <- declare_assignment(potential_outcomes = potential_outcomes, block_variable_name = "ideo_3", probability_each = c(.3, .6, .1))
-  assignment_8 <- declare_assignment(potential_outcomes = potential_outcomes, block_variable_name = "ideo_3", condition_names = c(0, 1))
+  assignment_6 <- declare_assignment(potential_outcomes = potential_outcomes, block_var = ideo_3)
+  assignment_7 <- declare_assignment(potential_outcomes = potential_outcomes, block_var = ideo_3, prob_each = c(.3, .6, .1))
+  assignment_8 <- declare_assignment(potential_outcomes = potential_outcomes, block_var = ideo_3, condition_names = c(0, 1))
+  
+  table(assign_treatment_indicator(data = smp_draw, assignment = assignment_6))
+  table(assign_treatment_indicator(data = smp_draw, assignment = assignment_7))
+  table(assign_treatment_indicator(data = smp_draw, assignment = assignment_8))
   
   block_probabilities <- rbind(c(.1, .2, .7),
                                c(.1, .7, .2),
-                               c(.7, .2, .1),
-                               c(.7, .1, .2),
-                               c(.2, .1, .7))
+                               c(.7, .2, .1))
+  
   assignment_8.5 <- declare_assignment(potential_outcomes = potential_outcomes, 
-                                       block_variable_name = "ideo_3",
-                                       block_probabilities = block_probabilities)
+                                       block_var = ideo_3,
+                                       block_prob_each = block_probabilities)
   
   assignment_8.6 <- declare_assignment(potential_outcomes = potential_outcomes, 
-                                       block_variable_name = "ideo_3",
+                                       block_var = ideo_3,
                                        condition_names = c(0, 1),
                                        block_m = c(10, 10, 10))
   
+  table(assign_treatment_indicator(data = smp_draw, assignment = assignment_8.5))
+  table(assign_treatment_indicator(data = smp_draw, assignment = assignment_8.6))
+  
   
   # Clustered assignments 
-  assignment_9 <- declare_assignment(potential_outcomes = potential_outcomes, cluster_variable_name = "villages_ID")
-  assignment_10 <- declare_assignment(potential_outcomes = potential_outcomes, cluster_variable_name = "villages_ID", condition_names = c(0, 1))
-  assignment_11 <- declare_assignment(potential_outcomes = potential_outcomes, cluster_variable_name = "villages_ID", probability_each = c(.1, .3, .6))
+  assignment_9 <- declare_assignment(potential_outcomes = potential_outcomes, clust_var = villages_ID)
+  assignment_10 <- declare_assignment(potential_outcomes = potential_outcomes, clust_var = villages_ID, condition_names = c(0, 1))
+  assignment_11 <- declare_assignment(potential_outcomes = potential_outcomes, clust_var = villages_ID, prob_each = c(.1, .3, .6))
+  
+  table(assign_treatment_indicator(data = smp_draw, assignment = assignment_9))
+  table(assign_treatment_indicator(data = smp_draw, assignment = assignment_10))
+  table(assign_treatment_indicator(data = smp_draw, assignment = assignment_11))
   
   # Blocked and Clustered assignments
   assignment_12 <- declare_assignment(potential_outcomes = potential_outcomes, 
-                                      cluster_variable_name = "villages_ID", 
-                                      block_variable_name = "high_elevation")
+                                      clust_var = villages_ID, 
+                                      block_var = high_elevation)
   assignment_13 <- declare_assignment(potential_outcomes = potential_outcomes, 
-                                      cluster_variable_name = "villages_ID", 
-                                      block_variable_name = "high_elevation", condition_names = c(0,1))
+                                      clust_var = villages_ID, 
+                                      block_var = high_elevation, condition_names = c(0,1))
   assignment_14 <- declare_assignment(potential_outcomes = potential_outcomes, 
-                                      cluster_variable_name = "villages_ID", 
-                                      block_variable_name = "high_elevation", probability_each = c(.1, .3, .6))
+                                      clust_var = villages_ID, 
+                                      block_var = high_elevation, prob_each = c(.1, .3, .6))
+  
+  table(assign_treatment_indicator(data = smp_draw, assignment = assignment_12))
+  table(assign_treatment_indicator(data = smp_draw, assignment = assignment_13))
+  table(assign_treatment_indicator(data = smp_draw, assignment = assignment_14))
   
   # Draw Data
   pop_draw <- draw_population(population = population)
   smp_draw <- draw_sample(data = pop_draw, sampling = sampling)
-  smp_draw <- assign_treatment(data = smp_draw, assignment = assignment_1)
+  
   
   # Attempt to Assign
   smp_draw$Z0 <- assign_treatment_indicator(data = smp_draw, assignment = assignment_0) 
@@ -106,29 +128,6 @@ test_that("test assignment and probability functions", {
   
   with(smp_draw, table(Z14, villages_ID))
   with(smp_draw, table(Z14, high_elevation))
-  
-  # Obtain Treatment Probabilities
-  
-  prob_mat_1 <- get_assignment_probabilities(data = smp_draw, assignment = assignment_1) 
-  prob_mat_2 <- get_assignment_probabilities(data = smp_draw, assignment = assignment_2) 
-  prob_mat_3 <- get_assignment_probabilities(data = smp_draw, assignment = assignment_3) 
-  prob_mat_4 <- get_assignment_probabilities(data = smp_draw, assignment = assignment_4) 
-  prob_mat_5 <- get_assignment_probabilities(data = smp_draw, assignment = assignment_5) 
-  
-  prob_mat_6 <- get_assignment_probabilities(data = smp_draw, assignment = assignment_6) 
-  prob_mat_7 <- get_assignment_probabilities(data = smp_draw, assignment = assignment_7) 
-  prob_mat_8 <- get_assignment_probabilities(data = smp_draw, assignment = assignment_8) 
-  
-  prob_mat_8.5 <- get_assignment_probabilities(data = smp_draw, assignment = assignment_8.5) 
-  prob_mat_8.6 <- get_assignment_probabilities(data = smp_draw, assignment = assignment_8.6) 
-  
-  prob_mat_9 <- get_assignment_probabilities(data = smp_draw, assignment = assignment_9) 
-  prob_mat_10 <- get_assignment_probabilities(data = smp_draw, assignment = assignment_10) 
-  prob_mat_11 <- get_assignment_probabilities(data = smp_draw, assignment = assignment_11) 
-  
-  prob_mat_12 <- get_assignment_probabilities(data = smp_draw, assignment = assignment_12) 
-  prob_mat_13 <- get_assignment_probabilities(data = smp_draw, assignment = assignment_13) 
-  prob_mat_14 <- get_assignment_probabilities(data = smp_draw, assignment = assignment_14) 
   
   # reveal observed probs
   
