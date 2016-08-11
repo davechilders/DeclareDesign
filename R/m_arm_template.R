@@ -8,9 +8,9 @@
 #' @param ATEs A vector of length m-1 indicating the desired average treatment effect ATE for each experimental group relative to control (mu_Y0).
 #' @param noise_scale A scalar or a vector of length m indicating the standard deviation of individual-level noise for each experimental group. If it is a scalar, the standard deviation of individual-level noise is constant across all treatment groups. If it is a vector, the standard deviation of noise is group-specific. The elements in the vector correspond to control and then the treatment groups in ascending order.
 #' @param coef_X A scalar coefficient on a covariate, X, in the potential outcomes function.  By default, coef_X = 0.
-#' @param location_scale_X A vector of length two indicating the mean and standard deviation of covariate X. By default, location_scale_X = 0. 
+#' @param location_scale_X A vector of length two indicating the mean and standard deviation of covariate X. By default, location_scale_X = c(0, 1). 
 #' @param cov_adjustment A logical argument indicating whether covariate adjustment should be used in estimation. By default, cov_adjustment = F. 
-#' @param block_var_vector For non-clustered designs, a vector indicating the block to which a unit belongs. For cluster-randomized experiments, the vector should be at the cluster level (of length n_clust_pop).
+#' @param block_var_vector For non-clustered designs, a vector of length N indicating the block to which a unit belongs. 
 #' @param block_var_probs For non-clustered designs, a vector specifying the distribution of a multinomial blocking variable (probability per level). The elements in the vector must be between 0 and 1 and sum to 1.
 #' @param blocked_RA A logical argument indicating whether blocked random assignment should be used. By default, blocked_RA = F.
 #' @param block_prob_each A matrix with the same number of rows as blocks and the same number of columns as treatment arms. Cell entries are the probabilites of assignment to treatment within each block. The rows should respect the ordering of the blocks as determined by sort(unique(block_var)). Use only if the probabilities of assignment should vary by block, otherwise use prob_each. Each row of block_prob_each must sum to 1.
@@ -94,7 +94,7 @@ m_arm_template <- function(N,
   if(sum(block_var_probs) != 1){
     stop("Block_var_probs must sum to 1.")
   }
-  if(binary_POs == TRUE & sum(mu_Y0 + ATEs > 1) > 0 | sum(mu_Y0 + ATEs < 0) > 0){
+  if(binary_POs == TRUE & sum(mu_Y0 + ATEs > 1) > 0 | binary_POs == TRUE & sum(mu_Y0 + ATEs < 0) > 0){
     stop("All combinations of mu_Y0 + ATEs must be between 0 and 1.")
   }
   if(!is.null(n_clust_pop) & !is.null(n_clust_samp)){
