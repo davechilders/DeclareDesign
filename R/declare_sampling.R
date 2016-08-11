@@ -142,6 +142,13 @@ declare_sampling <-
            description = NULL,
            ...) {
     
+    if(!(substitute(sampling_function) == "conduct_rs" &
+         getNamespaceName(environment(sampling_function)) == "randomizr") & 
+       (substitute(sampling_probability_function) == "obtain_inclusion_probabilities" &
+        getNamespaceName(environment(sampling_probability_function)) == "randomizr")){
+      sampling_probability_function <- NULL
+    }
+    
     sampling_function_options <- eval(substitute(alist(...)))
     
     sampling_function_internal <- function(data){
