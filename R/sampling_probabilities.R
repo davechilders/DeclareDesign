@@ -16,6 +16,12 @@
 get_sampling_probabilities <- function(data, sampling){
   
   sampling <- clean_inputs(sampling, object_class = "sampling", accepts_list = FALSE)
-
-  return(sampling$sampling_probability_function(data = data))
+  
+  if(sampling$sampling == TRUE){
+    S_prob <- sampling$sampling_probability_function(data = data)
+  } else {
+    S_prob <- rep("unknown", nrow(data))
+  }
+  
+  return(S_prob)
 }

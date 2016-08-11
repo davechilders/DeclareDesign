@@ -130,6 +130,7 @@
 #' 
 #' with(smp_draw, table(Z14, villages_ID))
 #' with(smp_draw, table(Z14, high_elevation))
+#' @importFrom randomizr draw_rs obtain_inclusion_probabilities
 #' @export
 declare_sampling <- 
   function(sampling = TRUE,
@@ -142,7 +143,7 @@ declare_sampling <-
            description = NULL,
            ...) {
     
-    if(!(substitute(sampling_function) == "conduct_rs" &
+    if(!(substitute(sampling_function) == "draw_rs" &
          getNamespaceName(environment(sampling_function)) == "randomizr") & 
        (substitute(sampling_probability_function) == "obtain_inclusion_probabilities" &
         getNamespaceName(environment(sampling_probability_function)) == "randomizr")){
@@ -173,18 +174,25 @@ declare_sampling <-
       do.call(sampling_probability_function, args = sampling_probability_function_options, envir = data_environment)
     }
     
-    if(is.null(existing_sampling_variable_name)) {
-      return.object <- list(
-        sampling_function = sampling_function_internal,
-        sampling_probability_function = sampling_probability_function_internal,
-        sampling_variable_name = sampling_variable_name,
-        sampling = sampling,
-        description = description,
-        call = match.call())
+    if(sampling == TRUE){
+      if(is.null(existing_sampling_variable_name)) {
+        return.object <- list(
+          sampling_function = sampling_function_internal,
+          sampling_probability_function = sampling_probability_function_internal,
+          sampling_variable_name = sampling_variable_name,
+          sampling = sampling,
+          description = description,
+          call = match.call())
+      } else {
+        return.object <- list(
+          existing_sampling_variable_name = existing_sampling_variable_name,
+          sampling_variable_name = sampling_variable_name,
+          sampling = sampling,
+          description = description,
+          call = match.call())
+      }
     } else {
       return.object <- list(
-        existing_sampling_variable_name = existing_sampling_variable_name,
-        sampling_variable_name = sampling_variable_name,
         sampling = sampling,
         description = description,
         call = match.call())

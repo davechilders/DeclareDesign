@@ -1,3 +1,5 @@
+rm(list=ls())
+library(DeclareDesign)
 
 context("Assignment and probability functions")
 
@@ -8,7 +10,7 @@ test_that("test assignment and probability functions", {
                                    villages = list(elevation = "rnorm(n_)",
                                                    high_elevation = "1*(elevation > 0)"), 
                                    size = c(1000, 100))
-  sampling <- declare_sampling(N = N_, m = 100)
+  sampling <- declare_sampling(n = 100)
   
   potential_outcomes <- declare_potential_outcomes(formula = Y ~ 5 + .5*(Z==1) + .9*(Z==2) + .2*Z*elevation + noise,
                                                    condition_names = c(0, 1, 2),

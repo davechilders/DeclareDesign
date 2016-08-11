@@ -56,6 +56,9 @@ draw_sample <- function(data, sampling = NULL) {
     
   } else {
     
+    data$inclusion_probabilities <- 1
+    data$sampling_weights <- 1
+    
     return(data)
     
   }

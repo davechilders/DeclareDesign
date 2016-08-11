@@ -130,6 +130,7 @@
 #' 
 #' with(smp_draw, table(Z14, villages_ID))
 #' with(smp_draw, table(Z14, high_elevation))
+#' @importFrom randomizr conduct_ra obtain_condition_probabilities
 #' @export
 declare_assignment <- 
   function(assignment_function = conduct_ra,
