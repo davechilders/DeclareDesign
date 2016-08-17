@@ -1,12 +1,12 @@
-#' M-arm Template
+#' K-arm Template
 #' 
 #' @param N A scalar (must be an integer) indicating the total population size.
 #' @param n A scalar (must be an integer) indicating the total sample size. By default, n = N.
-#' @param m A scalar (must be an integer) indicating the number of arms. Note that m > 1 for any experiment.
-#' @param probability_each A vector of length m, indicating the probability of assignment to each arm. The first element indicates the control group and subsequent elements indicate each of the treatment groups in ascending order (i.e. treatment 1 to treatment m-1). The elements in the vector must sum to 1. By default, units have a 1/m probability of assignment to each experimental group.
+#' @param k A scalar (must be an integer) indicating the number of arms. Note that k > 1 for any experiment.
+#' @param probability_each A vector of length k, indicating the probability of assignment to each arm. The first element indicates the control group and subsequent elements indicate each of the treatment groups in ascending order (i.e. treatment 1 to treatment m-1). The elements in the vector must sum to 1. By default, units have a 1/k probability of assignment to each experimental group.
 #' @param mu_Y0 A scalar indicating the expectation of the untreated potential outcome (control group).
-#' @param ATEs A vector of length m-1 indicating the desired average treatment effect ATE for each experimental group relative to control (mu_Y0).
-#' @param noise_scale A scalar or a vector of length m indicating the standard deviation of individual-level noise for each experimental group. If it is a scalar, the standard deviation of individual-level noise is constant across all treatment groups. If it is a vector, the standard deviation of noise is group-specific. The elements in the vector correspond to control and then the treatment groups in ascending order.
+#' @param ATEs A vector of length k-1 indicating the desired average treatment effect ATE for each experimental group relative to control (mu_Y0).
+#' @param noise_scale A scalar or a vector of length k indicating the standard deviation of individual-level noise for each experimental group. If it is a scalar, the standard deviation of individual-level noise is constant across all treatment groups. If it is a vector, the standard deviation of noise is group-specific. The elements in the vector correspond to control and then the treatment groups in ascending order.
 #' @param coef_X A scalar coefficient on a covariate, X, in the potential outcomes function.  By default, coef_X = 0.
 #' @param location_scale_X A vector of length two indicating the mean and standard deviation of covariate X. By default, location_scale_X = c(0, 1). 
 #' @param cov_adjustment A logical argument indicating whether covariate adjustment should be used in estimation. By default, cov_adjustment = F. 
@@ -24,36 +24,30 @@
 #' 
 #' @examples 
 #' \dontrun{
-#' design_1 <- m_arm_template(N = 1000, n = 500, m = 4, probability_each = c(.2, .3, .15, .35), 
+#' design_1 <- k_arm_template(N = 1000, n = 500, k = 4, probability_each = c(.2, .3, .15, .35), 
 #'                            mu_Y0 = .3, ATEs = c(-.2, .04, .32), noise_scale = 1)
-#' design_2 <- m_arm_template(N = 200, mu_Y0 = .2, ATEs = .06, binary_POs = T)
-#' design_3 <- m_arm_template(N = 400, n = 300, m = 3, mu_Y0 = 2, ATEs = c(-.38, -.12), 
+#' design_2 <- k_arm_template(N = 200, mu_Y0 = .2, ATEs = .06, binary_POs = T)
+#' design_3 <- k_arm_template(N = 400, n = 300, k = 3, mu_Y0 = 2, ATEs = c(-.38, -.12), 
 #'                            block_var_probs = c(.2, .25, .25, .3), block_noise_coef = 2, 
 #'                            blocked_RA = T)
-#' design_4 <- m_arm_template(N = 600, n_clust_pop = 100, n_clust_samp = 80, ATEs = .25, coef_X = .8, 
+#' design_4 <- k_arm_template(N = 600, n_clust_pop = 100, n_clust_samp = 80, ATEs = .25, coef_X = .8, 
 #'                            cov_adjustment = T)
-#' design_5 <- m_arm_template(N = 800, n_clust_pop = 200, m = 3, mu_Y0 = .65, ATEs = c(-.1, -.05), 
+#' design_5 <- k_arm_template(N = 800, n_clust_pop = 200, k = 3, mu_Y0 = .65, ATEs = c(-.1, -.05), 
 #'                            probability_each = c(.25, .25, .5), binary_POs = T)
-#' design_6 <- m_arm_template(N = 500, n_clust_pop = 100, mu_Y0 = .4, ATEs = -.1, block_noise_coef = 2, 
+#' design_6 <- k_arm_template(N = 500, n_clust_pop = 100, mu_Y0 = .4, ATEs = -.1, block_noise_coef = 2, 
 #'                            clust_noise_coef = 2, n_blocks = 5, binary_POs = T, blocked_RA = T)
-#' design_7 <- m_arm_template(N = 600, n_clust_pop = 120, m = 3, custom_pop_list = list(inds = rep(1, 600), 
+#' design_7 <- k_arm_template(N = 600, n_clust_pop = 120, k = 3, custom_pop_list = list(inds = rep(1, 600), 
 #'                            clusters = rep(c(6, 6, 3, 5, 5), 24), blocks = c(rep(3, each = 40))), 
 #'                            ATEs = c(-.15, .2),  mu_Y0 = .4, clust_noise_coef = 2, binary_POs = T, 
 #'                            noise_scale = 1)
 #'}                            
 #' @export
 
-make_block_noise <- function(block_var){
-  if(!is.numeric(block_var)){bv <- as.numeric(factor(block_var))}
-  else{bv <- block_var}
-  rn <- rnorm(length(unique(bv)))
-  return(rn[bv])
-}
 
-m_arm_template <- function(N, 
+k_arm_template <- function(N, 
                            n = N, 
-                           m = 2,
-                           probability_each = rep(1/m, m), 
+                           k = 2,
+                           probability_each = rep(1/k, k), 
                            mu_Y0 = 0, 
                            ATEs = 0, 
                            noise_scale = 1, 
@@ -79,14 +73,14 @@ m_arm_template <- function(N,
   if(n > N){
     stop("Sample (n) cannot be larger than population (N)!")
   }
-  if(m < 2){
-    stop("Experiment requires that m > 1.")
+  if(k < 2){
+    stop("Experiment requires that k > 1.")
   }
-  if(length(ATEs) != (m - 1)) {
-    stop("Vector of ATEs must be of length m-1 (one ATE per treatment group).")
+  if(length(ATEs) != (k - 1)) {
+    stop("Vector of ATEs must be of length k-1 (one ATE per treatment group).")
   }
-  if(length(noise_scale) != m  &  length(noise_scale)!= 1) {
-    stop("Vector of noise scale must be of length m or 1!")
+  if(length(noise_scale) != k  &  length(noise_scale)!= 1) {
+    stop("Vector of noise scale must be of length k or 1!")
   }
   if(sum(noise_scale < 0) > 0| clust_noise_coef < 0 | block_noise_coef < 0 ){
     stop("All noise-scaling inputs must be zero or positive.")
@@ -103,6 +97,15 @@ m_arm_template <- function(N,
     }
   }
 
+
+# Required functions ---------------------------------------------------
+
+  make_block_noise <- function(block_var){
+    if(!is.numeric(block_var)){bv <- as.numeric(factor(block_var))}
+    else{bv <- block_var}
+    rn <- rnorm(length(unique(bv)))
+    return(rn[bv])
+  }
 
 # Declare Design Objeccts -------------------------------------------------
 
