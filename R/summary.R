@@ -109,6 +109,7 @@ summary.population <- function(object, extended = TRUE,
                                                 median = median,
                                                 sd = sd),
                                digits = 2,...) {
+  
   object <- clean_inputs(object, "population", accepts_list = FALSE)
   
   if (length(environment(object$population)) == 6) {
@@ -171,19 +172,28 @@ summary.population <- function(object, extended = TRUE,
                          stat_list = stat_list), 
             digits = digits)
     
-    if (!is.null(environment(object$population)$expressions)) {
-      code_summary <- 
-        paste0(names(flatten_list(var_structure)), " <- ", flatten_list(var_structure))
-      
-      structure(list(summary_text = summary_text, 
-                     stat = variable_summaries,
-                     code = code_summary), 
-                class = c("summary.population", "population", "extended"))
-    } else {
-      structure(list(text = paste0(short_text,extended_text), 
-                     stat = variable_summaries), 
-                class = c("summary.population", "population", "extended"))
-    }
+    
+    
+    structure(list(summary_text = summary_text, 
+                   stat = variable_summaries,
+                   code = paste0(deparse(object$call), collapse = "\n"),
+                   internal = list(options = environment(object$population)$options,
+                                   data = environment(object$population)$data_internal)), 
+              class = c("summary.population", "population", "extended"))
+    
+    # if (!is.null(environment(object$population)$expressions)) {
+    #   code_summary <- 
+    #     paste0(names(flatten_list(var_structure)), " <- ", flatten_list(var_structure))
+    #   
+    #   structure(list(summary_text = summary_text, 
+    #                  stat = variable_summaries,
+    #                  code = code_summary), 
+    #             class = c("summary.population", "population", "extended"))
+    # } else {
+    #   structure(list(summary_text = paste0(short_text,extended_text), 
+    #                  stat = variable_summaries), 
+    #             class = c("summary.population", "population", "extended"))
+    # }
   } else {
     stop("Please provide at least one summary statistic in stat_list.")
   }
@@ -194,7 +204,7 @@ print.summary.population <- function(x, ...){
   if ("extended" %in% class(x)) { 
     cat(x$summary_text) 
     print(x$stat) 
-    if (!is.null(x$code)) cat("\n\nVariable declaraions\n", x$code, sep = "\n")
+    if (!is.null(x$code)) cat("\n\nPopulation call\n", x$code, sep = "\n")
   } else {
     cat(x$summary_text)
   }

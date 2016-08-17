@@ -19,9 +19,10 @@ pop1 <- declare_population(
 )
 
 test_that("summary of standard way of declaring population works", {
-  expect_silent(summary(pop1))
-  expect_silent(summary(pop1, extended = TRUE))
-  expect_true(any(!(class(summary(pop1, extended = TRUE)) %in% class(summary(pop1)))))
+  expect_equal(names(summary(pop1, extended = FALSE)), "summary_text")
+  expect_equal(names(summary(pop1)), c("summary_text", "stat", "code", "internal"))
+  expect_null(summary(pop1)$internal$data, summary(pop1)$internal$options)
+  expect_true(any(!(class(summary(pop1)) %in% class(summary(pop1, extended = FALSE)))))
 }) 
 
 
@@ -38,9 +39,10 @@ pop2 <- declare_population(size = 10,
                            make_unique_ID = T)
 
 test_that("summary of population with simple custom DGP function works", {
-  expect_silent(summary(pop2))
-  expect_silent(summary(pop2, extended = TRUE))
-  expect_true(any(!(class(summary(pop2, extended = TRUE)) %in% class(summary(pop2)))))
+  expect_equal(names(summary(pop2, extended = FALSE)), "summary_text")
+  expect_equal(names(summary(pop2)), c("summary_text", "stat", "code", "internal"))
+  expect_null(summary(pop2)$internal$data, summary(pop2)$internal$options)
+  expect_true(any(!(class(summary(pop2)) %in% class(summary(pop2, extended = FALSE)))))
 })
   
 
@@ -77,9 +79,10 @@ pop3 <- declare_population(
 )
 
 test_that("summary of population with user-provided data works", {
-  expect_silent(summary(pop3))
-  expect_silent(summary(pop3, extended = TRUE))
-  expect_true(any(!(class(summary(pop3, extended = TRUE)) %in% class(summary(pop3)))))
+  expect_equal(names(summary(pop3, extended = FALSE)), "summary_text")
+  expect_equal(names(summary(pop3)), c("summary_text", "stat", "code", "internal"))
+  expect_equal(names(summary(pop3)$internal$options), "user_data")
+  expect_true(any(!(class(summary(pop3)) %in% class(summary(pop3, extended = FALSE)))))
 })
   
   
@@ -98,9 +101,10 @@ pop4 <- declare_population(
   resample_data = T)
 
 test_that("summary of population with user-provided data and custom resampling function works", {
-  expect_silent(summary(pop4))
-  expect_silent(summary(pop4, extended = TRUE))
-  expect_true(any(!(class(summary(pop4, extended = TRUE)) %in% class(summary(pop4)))))
+  expect_equal(names(summary(pop4, extended = FALSE)), "summary_text")
+  expect_equal(names(summary(pop4)), c("summary_text", "stat", "code", "internal"))
+  expect_equal(class(summary(pop4)$internal$data), "data.frame")
+  expect_true(any(!(class(summary(pop4)) %in% class(summary(pop4, extended = FALSE)))))
 })
 
 # standard way
@@ -150,7 +154,7 @@ potential_outcomes <- declare_potential_outcomes(potential_outcomes_function = m
                                                  outcome_variable_name = 'Y',
                                                  condition_names = c(0, 1))
 
-summary(potential_outcomes)
+expect_silent(summary(potential_outcomes))
 
 ## Declare potential outcomes using formula
 
@@ -160,7 +164,7 @@ potential_outcomes <- declare_potential_outcomes(formula = Y ~ 0.25 * Z + noise,
                                                  condition_names = c(0, 1),
                                                  assignment_variable_name = "Z")
 
-summary(potential_outcomes)
+expect_silent(summary(potential_outcomes))
 
 ## Multiple treatments !!!
 
@@ -171,7 +175,7 @@ potential_outcomes <- declare_potential_outcomes(formula = Y ~ 5 + 1*Z1 + 2*Z2 -
                                                                         Z2 = c(0, 1)),
                                                  assignment_variable_name = c("Z1", "Z2"))
 
-summary(potential_outcomes)
+expect_silent(summary(potential_outcomes))
 
 ## Multiple potential outcomes !!!
 
@@ -185,5 +189,6 @@ potential_outcomes_2 <- declare_potential_outcomes(formula = Y2 ~ 5 + .25*Z + no
                                                     inherit_condition_names = TRUE,
                                                     assignment_variable_name = "Z")
 
-summary(list(potential_outcomes_1, potential_outcomes_2))[]
+
+expect_output(sapply(list(potential_outcomes_1, potential_outcomes_2), summary) %>% cat(sep = "\n\n"))
 

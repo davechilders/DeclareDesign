@@ -4,19 +4,19 @@
 \alias{summary.population}
 \title{Summarizing population}
 \usage{
-\method{summary}{population}(object, extended = FALSE, stat_list = list(max
-  = max, min = min, mean = mean, median = median, sd = sd), digits = 2, ...)
+\method{summary}{population}(object, extended = TRUE, stat_list = list(max =
+  max, min = min, mean = mean, median = median, sd = sd), digits = 2, ...)
 }
 \arguments{
-\item{object}{a population object as created by \code{\link{declare_population}}.}
+\item{object}{A population object as created by \code{\link{declare_population}}.}
 
-\item{extended}{logical; Whether to print extended summary, including variable summary statistics and levels. Default is \code{FALSE}.}
+\item{extended}{Logical. Whether to print extended summary, including variable summary statistics and levels. Default is \code{TRUE}.}
 
-\item{stat_list}{if \code{extended = TRUE}, a list of named summary statistics, which should be reported for each variable declared in population. By default returns \code{min}, \code{max}, \code{mean}, \code{median} and \code{sd}.}
+\item{stat_list}{If \code{extended = TRUE}, a list of named summary statistics, which should be reported for each variable declared in population. By default returns \code{min}, \code{max}, \code{mean}, \code{median} and \code{sd}.}
 
-\item{digits}{number of decimal points to prin for summary statistics. Default is 2.}
+\item{digits}{Integer. Number of decimal points to prin for summary statistics. Default is 2.}
 
-\item{...}{further arguments passed to or from other methods.}
+\item{...}{Further arguments passed to or from other methods.}
 }
 \value{
 List with two elements. \code{text} contains text explanation of population structure. \code{stat} contains named matrix of summary statistics specified in \code{stat_list}.
