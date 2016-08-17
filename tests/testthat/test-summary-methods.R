@@ -4,6 +4,9 @@ library(DeclareDesign)
 
 context("summary methods")
 
+
+# SUMMARY.POPULATION --------------------------------------------------------------------------
+
 pop1 <- declare_population(
   indiv = list(
     income = "rnorm(n_)",
@@ -107,42 +110,53 @@ test_that("summary of population with user-provided data and custom resampling f
   expect_true(any(!(class(summary(pop4)) %in% class(summary(pop4, extended = FALSE)))))
 })
 
-# standard way
 
-population <- declare_population(individuals = list(noise = "rnorm(n_)",
-                                                    ideo_3 = "sample(c('Liberal', 'Moderate', 'Conservative'), size = n_, prob = c(.2, .3, .5), replace = T)"),
-                                 villages = list(elevation = "rnorm(n_)",
-                                                 high_elevation = "1*(elevation > 0)"), 
-                                 size = c(1000, 100))
 
-potential_outcomes <- 
-  declare_potential_outcomes(formula = Y ~ 5 + .5*(Z==1) + .9*(Z==2) + .2*Z*elevation + noise,
-                             condition_names = c(0, 1, 2),
-                             assignment_variable_name = "Z")
+
+# SUMMARY.POTENTIAL_OUTCOMES ------------------------------------------------------------------
+
+## Formula + variables
+
+population <- declare_population(noise = "rnorm(n_)", size = 250)
+
+potential_outcomes <- declare_potential_outcomes(formula = Y ~ 0.25 * Z + noise,
+                                                 condition_names = c(0, 1),
+                                                 assignment_variable_name = "Z")
 
 
 test_that("summary of potantial outcomes works", {
   expect_silent(summary(potential_outcomes))
 })
 
-# custom potential outcomes
+# population <- declare_population(individuals = list(noise = "rnorm(n_)",
+#                                                     ideo_3 = "sample(c('Liberal', 'Moderate', 'Conservative'), size = n_, prob = c(.2, .3, .5), replace = T)"),
+#                                  villages = list(elevation = "rnorm(n_)",
+#                                                  high_elevation = "1*(elevation > 0)"), 
+#                                  size = c(1000, 100))
+# 
+# potential_outcomes <- 
+#   declare_potential_outcomes(formula = Y ~ 5 + .5*(Z==1) + .9*(Z==2) + .2*Z*elevation + noise,
+#                              condition_names = c(0, 1, 2),
+#                              assignment_variable_name = "Z")
+# 
+# names(draw_population(population = population, potential_outcomes = potential_outcomes))
+# 
+# test_that("summary of potantial outcomes works", {
+#   expect_silent(summary(potential_outcomes))
+# })
 
-population      <- declare_population(noise = declare_variable(), size = 100)
+## Multiple treatments !!!
 
-my_potential_outcomes <- function(data) { (data$Z == "Z1") * 0.25 + runif(nrow(data)) }
-potential_outcomes <- declare_potential_outcomes(condition_names = c("Z0", "Z1"), 
-                                                 potential_outcomes_function = my_potential_outcomes,
-                                                 outcome_variable_name = "Y")
+population <- declare_population(noise = "rnorm(n_)", size = 250)
 
-test_that("summary of potential outcomes using custom function works ",{
+potential_outcomes <- declare_potential_outcomes(formula = Y ~ 5 + 1*Z1 + 2*Z2 - 3*Z1*Z2 + noise,
+                                                 condition_names = list(Z1 = c(0, 1), 
+                                                                        Z2 = c(0, 1)),
+                                                 assignment_variable_name = c("Z1", "Z2"))
+
+test_that("summary of potantial outcomes works", {
   expect_silent(summary(potential_outcomes))
 })
-
-
-
-
-# NEW STUFF FOR POs ---------------------------------------------------------------------------
-
 
 ## Declare potential outcomes using potential_outcomes_function
 
@@ -154,27 +168,20 @@ potential_outcomes <- declare_potential_outcomes(potential_outcomes_function = m
                                                  outcome_variable_name = 'Y',
                                                  condition_names = c(0, 1))
 
-expect_silent(summary(potential_outcomes))
+test_that("summary of potential outcomes using custom function works ",{
+  expect_silent(summary(potential_outcomes))
+})
 
-## Declare potential outcomes using formula
 
-population <- declare_population(noise = "rnorm(n_)", size = 250)
 
-potential_outcomes <- declare_potential_outcomes(formula = Y ~ 0.25 * Z + noise,
-                                                 condition_names = c(0, 1),
-                                                 assignment_variable_name = "Z")
 
-expect_silent(summary(potential_outcomes))
+# NEW STUFF FOR POs ---------------------------------------------------------------------------
 
-## Multiple treatments !!!
 
-population <- declare_population(noise = "rnorm(n_)", size = 250)
 
-potential_outcomes <- declare_potential_outcomes(formula = Y ~ 5 + 1*Z1 + 2*Z2 - 3*Z1*Z2 + noise,
-                                                 condition_names = list(Z1 = c(0, 1), 
-                                                                        Z2 = c(0, 1)),
-                                                 assignment_variable_name = c("Z1", "Z2"))
 
+
+names(draw_population(population = population, potential_outcomes = potential_outcomes))
 expect_silent(summary(potential_outcomes))
 
 ## Multiple potential outcomes !!!
@@ -189,6 +196,8 @@ potential_outcomes_2 <- declare_potential_outcomes(formula = Y2 ~ 5 + .25*Z + no
                                                     inherit_condition_names = TRUE,
                                                     assignment_variable_name = "Z")
 
+pop_draw <- draw_population(population = population, 
+                            potential_outcomes = list(potential_outcomes_1, potential_outcomes_2))
 
 expect_output(sapply(list(potential_outcomes_1, potential_outcomes_2), summary) %>% cat(sep = "\n\n"))
 
