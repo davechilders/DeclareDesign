@@ -38,18 +38,21 @@
 potential_outcomes object.
 }
 \description{
-Use to define potential outcomes as a function of manipulands and ancestor variables.
+Potential outcomes are endogenous outcomes of interest that are not under the direct control of the researcher. Examples include whether a drug is offered by a doctor, whether a drug is ingested, whether a patient survives, and whether outcomes are measured. Use this function to define a mapping between manipulands (typically randomly assigned treatments), ancestor variables (typically pre-treatment covariates) and potential outcomes. For instance, you may declare patient survival to be a function of whether or not the patient receives an experimental drug (a randomly assigned treatment) and the patient's pre-treatment health condition (a pre-treatment covariate). This gives rise to two potential outcomes for each patient - whether the patient survives when he receives the drug (treated potential outcome) and whether the patient dies when he does not receive the drug (control potential outcome).
 }
 \details{
-There are two ways to specify the relationship between potential outcomes, treatment assignments and pre-treatment characteristics. One way is to use the \code{potential_outcomes_function} argument. The function supplied to this argument needs to return an outcome vector of length \code{nrow(data)} when applied to a data frame that contains the following columns: 
+Use the \code{formula} argument to specify the relationship between potential outcomes, treatment assignments and pre-treatment covariates. A typical formula has the form \code{Y ~ terms}. \code{Y} is the name of the outcome variable. \code{terms} is an expression that typically consists of functions of the treatment assignment indicator(s)  and of the pre-treatment covariates that have been built into the \code{population} object. If a \code{formula} is supplied, there is no need to supply a \code{potential_outcomes_function}.
+
+         An alternative way to specify the relationship between potential outcomes, treatment assignments and pre-treatment characteristics is to use the \code{potential_outcomes_function} argument. The function supplied to this argument needs to return an outcome vector of length \code{nrow(data)} when applied to a data frame that contains the following columns: 
          \itemize{
            \item  one column for each treatment indicator named according to the character string(s) that have been supplied to the \code{assignment_variable_name} argument,
-           \item  the pre-treatment characteristic that have been built into the \code{population} object using the \link{declare_population} function.
+           \item  the pre-treatment characteristics that have been built into the \code{population} object using the \link{declare_population} function.
          }
          
-         Alternatively, the relationship between potential outcomes, treatment assignments and pre-treatment characteristics can be specified symbolically using the \code{formula} argument. A typical formula has the form \code{Y ~ terms}. \code{Y} is the name of the outcome variable. \code{terms} is an expression that may involve (functions of) the treatment assignment indicator(s)  and the pre-treatment characteristics that have been built into the \code{population} object.
          
-         If a \code{formula} is supplied, the \code{potential_outcomes_function} can be omitted, since the \code{potential_outcomes_function} argument defaults to the \link{default_potential_outcomes_function} which takes the arguments \code{formula} and \code{data} and returns the corresponding outcome vector. Likewise, the \code{formula} can be omitted if a \code{potential_outcomes_function} is supplied.    
+         There is no need to supply a \code{formula} if a \code{potential_outcomes_function} is supplied.
+         
+         The \code{potential_outcomes_function} argument defaults to the \link{default_potential_outcomes_function} which takes the arguments \code{formula} and \code{data} and returns the corresponding outcome vector.    
        
          See the \link{proportion_potential_outcomes_function} for a built-in potential outcomes function that can be used to create proportional potential outcomes.
 }
