@@ -236,7 +236,7 @@ summary.potential_outcomes <- function(object, extended = TRUE, ...) {
                                  envir = environment(object[[i]]$potential_outcomes_function)))
       
       summary_text[i] <- paste0("An outcome ", object[[i]]$outcome_variable_name, 
-                              " is defined by the formula\n\n", po_formula)
+                              " is defined by the formula\n", po_formula)
       
     } else if ( 
       ("formula" %in% ls(environment(object[[i]]$potential_outcomes_function))) &
@@ -245,7 +245,7 @@ summary.potential_outcomes <- function(object, extended = TRUE, ...) {
       
       summary_text[i] <- 
         paste0("An outcome ", object[[i]]$outcome_variable_name, 
-               " is defined by a custom function\n\n",
+               " is defined by a custom function\n",
                paste0(
                  deparse(
                    environment(object[[i]]$potential_outcomes_function)$potential_outcomes_function),
@@ -304,7 +304,7 @@ print.summary.potential_outcomes <- function(x, ...){
     cat(paste0(x$summary_text, 
                "\n\nLabels of potential outcomes\n", 
                sapply(x$po_labels, paste0, collapse = ", ", simplify = TRUE), 
-               "\n\nPopulation call\n", 
+               "\n\nPotential outcomes call\n", 
                x$code), 
         sep = "\n\n")
   } else {
