@@ -96,7 +96,8 @@ print.summary.design <- function(x, ...){
 #' @param digits Integer. Number of decimal points to prin for summary statistics. Default is 2.
 #' @param ... Further arguments passed to or from other methods.
 #'
-#' @return List with two elements. \code{text} contains text explanation of population structure. \code{stat} contains named matrix of summary statistics specified in \code{stat_list}.
+#' @return If \code{extended = FALSE} function returns list with one element, \code{summary_text}, which contains text explanation of population structure. If \code{extended = TRUE}, function returns list with 4 elements: \code{summary_text} as explained above, \code{stat}, which contains named matrix of summary statistics specified in \code{stat_list} argument, \code{code}, which contains function call which creates population object supplied, and \code{internal}, which contains list of all necessary data and options to re-create the population object using the \code{code}.
+#' 
 #' @examples
 #' # ADD EXAMPLES HERE
 #' 
@@ -181,19 +182,6 @@ summary.population <- function(object, extended = TRUE,
                                    data = environment(object$population)$data_internal)), 
               class = c("summary.population", "population", "extended"))
     
-    # if (!is.null(environment(object$population)$expressions)) {
-    #   code_summary <- 
-    #     paste0(names(flatten_list(var_structure)), " <- ", flatten_list(var_structure))
-    #   
-    #   structure(list(summary_text = summary_text, 
-    #                  stat = variable_summaries,
-    #                  code = code_summary), 
-    #             class = c("summary.population", "population", "extended"))
-    # } else {
-    #   structure(list(summary_text = paste0(short_text,extended_text), 
-    #                  stat = variable_summaries), 
-    #             class = c("summary.population", "population", "extended"))
-    # }
   } else {
     stop("Please provide at least one summary statistic in stat_list.")
   }
@@ -208,53 +196,127 @@ print.summary.population <- function(x, ...){
   } else {
     cat(x$summary_text)
   }
-  class(x) <- "list"
+  attr(x, "class") <- c("summary.population", "population", "list") 
   invisible(x)
 }
 
 # POTENTIAL OUTCOMES --------------------------------------------------------------------------
 
+
+
+#' Summarizing potential outcomes
+#'
+#' Summary method for potential_outcomes object created by \code{\link{declare_potential_outcomes}}.
+#'
+#' @param object A potential_outcomes object as created by \code{\link{declare_potential_outcomes}}.
+#' @param extended Logical. Whether to print extended summary including labels of potential outcomes delcared and function call which re-creates the potential outcomes object. Default is \code{TRUE}.
+#' @param ... Further arguments passed to or from other methods.
+#'
+#' @return If \code{extended = FALSE} function returns list with one element, \code{summary_text}, which contains text explanation of potential outcomes structure. If \code{extended = TRUE}, function returns list with 3 elements: \code{summary_text} as explained above, \code{po_labels}, which contains a named list of labels for all declared potential outcomes, and \code{code}, which contains function call which creates potential outcomes object supplied.
+#' @examples
+#' # ADD EXAMPLES HERE
+#' 
 #' @export
-summary.potential_outcomes <- function(object, ...) {
+
+summary.potential_outcomes <- function(object, extended = TRUE, ...) {
   object <- clean_inputs(object, "potential_outcomes", accepts_list = TRUE)
   
-  summary_text <- list()
-  text
+  summary_text <- code <- c()
+  po_labels <- list()
+  
   for(i in 1:length(object)){
+    
     if ( 
       ("formula" %in% ls(environment(object[[i]]$potential_outcomes_function))) & 
       !is.null(environment(object[[i]]$potential_outcomes_function)$formula) 
     ){
+      
       po_formula <- 
         formula_as_character(get("formula", 
                                  envir = environment(object[[i]]$potential_outcomes_function)))
       
-      summary_text[[i]] <- paste0("An outcome ", object[[i]]$outcome_variable_name, 
-                                  " is defined by the formula:\n\n", po_formula)
+      summary_text[i] <- paste0("An outcome ", object[[i]]$outcome_variable_name, 
+                              " is defined by the formula\n\n", po_formula)
+      
     } else if ( 
       ("formula" %in% ls(environment(object[[i]]$potential_outcomes_function))) &
       !is.null(environment(object[[i]]$potential_outcomes_function)$potential_outcomes_function) 
     ) {
-      summary_text[[i]] <- 
+      
+      summary_text[i] <- 
         paste0("An outcome ", object[[i]]$outcome_variable_name, 
-               " is defined by a custom function:\n\n",
-               paste0(deparse(environment(object[[i]]$potential_outcomes_function)$potential_outcomes_function), collapse = " "))
+               " is defined by a custom function\n\n",
+               paste0(
+                 deparse(
+                   environment(object[[i]]$potential_outcomes_function)$potential_outcomes_function),
+                 collapse = " "))
+      
+      object[[i]]$call[["potential_outcomes_function"]] <- 
+        environment(object[[i]]$potential_outcomes_function)$potential_outcomes_function
+      
     }
-  } 
+    
+    if (!is.null(object[[i]]$condition_names) & 
+        !is.null(object[[i]]$assignment_variable_name) &
+        !is.null(object[[i]]$sep)) {
+      
+      po_labels[[i]] <- 
+        sapply(X = object[[i]]$assignment_variable_name, 
+               FUN = function(x) { if (is.list(object[[i]]$condition_names)){
+                 paste(x, object[[i]]$condition_names[[x]], sep = object[[i]]$sep)
+               } else {
+                 paste(x, object[[i]]$condition_names, sep = object[[i]]$sep)
+               }
+               },
+               simplify = TRUE)
+      
+      po_labels[[i]] <- 
+        apply(X = expand.grid(split(x = po_labels[[i]], 
+                                    f = rep(1:ncol(po_labels[[i]]),
+                                            each = nrow(po_labels[[i]])))), 
+              MARGIN = 1, FUN = paste0, 
+              collapse = object[[i]]$sep)
+      
+    } else if (object[[i]]$inherit_condition_names) {
+      po_labels[[i]] <- "inherit_condition_names = TRUE. The labels of potential outcomes will be inherited from the first potential_outcomes object created by declare_potential_outcomes with specified condition names."
+    }
+    
+    names(po_labels)[i] <- object[[i]]$outcome_variable_name
+    
+    code[i] <- paste0(deparse(object[[i]]$call), collapse = "\n")
+    
+  }
   
-  summary_text <- do.call(paste0, summary_text)
-  structure(summary_text, class = c("summary.potential_outcomes", "potential_outcomes"))
+  if (!extended) {
+    structure(list(summary_text = summary_text), 
+              class = c("summary.potential_outcomes", "potential_outcomes"))
+  } else if (extended) {
+    structure(list(summary_text = summary_text,
+                   po_labels = po_labels,
+                   code = code), 
+              class = c("summary.potential_outcomes", "potential_outcomes", "extended"))
+  }
 }
-
 
 #' @export
 print.summary.potential_outcomes <- function(x, ...){
-  cat(x)
+  if ("extended" %in% class(x)) { 
+    cat(paste0(x$summary_text, 
+               "\n\nLabels of potential outcomes\n", 
+               sapply(x$po_labels, paste0, collapse = ", ", simplify = TRUE), 
+               "\n\nPopulation call\n", 
+               x$code), 
+        sep = "\n\n")
+  } else {
+    cat(x$summary_text)
+  }
+  attr(x, "class") <- c("summary.potential_outcomes", "potential_outcomes", "list") 
   invisible(x)
 }
 
 
-## sampling
+# SAMPLING ------------------------------------------------------------------------------------
+
 
 #' @export
 summary.sampling <- function(object, ...) {

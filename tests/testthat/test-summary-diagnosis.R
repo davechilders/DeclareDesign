@@ -2,7 +2,7 @@ rm(list=ls())
 library(testthat)
 library(DeclareDesign)
 
-context("summary.diagnosis")
+context("Summary diagnosis")
 
 test_that("summary works on diagnosis object produced by diagnose_design()", {
   

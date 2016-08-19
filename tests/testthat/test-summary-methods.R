@@ -2,7 +2,7 @@ rm(list=ls())
 library(testthat)
 library(DeclareDesign)
 
-context("summary methods")
+context("Summary methods")
 
 
 # SUMMARY.POPULATION --------------------------------------------------------------------------
@@ -117,87 +117,72 @@ test_that("summary of population with user-provided data and custom resampling f
 
 ## Formula + variables
 
-population <- declare_population(noise = "rnorm(n_)", size = 250)
+pop1 <- declare_population(noise = "rnorm(n_)", size = 250)
 
-potential_outcomes <- declare_potential_outcomes(formula = Y ~ 0.25 * Z + noise,
+po1 <- declare_potential_outcomes(formula = Y ~ 0.25 * Z + noise,
                                                  condition_names = c(0, 1),
                                                  assignment_variable_name = "Z")
 
 
 test_that("summary of potantial outcomes works", {
-  expect_silent(summary(potential_outcomes))
+  expect_equal(names(summary(po1, extended = FALSE)), "summary_text")
+  expect_equal(names(summary(po1)), c("summary_text", "po_labels", "code"))
+  expect_silent(summary(po1))
 })
 
-# population <- declare_population(individuals = list(noise = "rnorm(n_)",
-#                                                     ideo_3 = "sample(c('Liberal', 'Moderate', 'Conservative'), size = n_, prob = c(.2, .3, .5), replace = T)"),
-#                                  villages = list(elevation = "rnorm(n_)",
-#                                                  high_elevation = "1*(elevation > 0)"), 
-#                                  size = c(1000, 100))
-# 
-# potential_outcomes <- 
-#   declare_potential_outcomes(formula = Y ~ 5 + .5*(Z==1) + .9*(Z==2) + .2*Z*elevation + noise,
-#                              condition_names = c(0, 1, 2),
-#                              assignment_variable_name = "Z")
-# 
-# names(draw_population(population = population, potential_outcomes = potential_outcomes))
-# 
-# test_that("summary of potantial outcomes works", {
-#   expect_silent(summary(potential_outcomes))
-# })
+## Multiple treatments
 
-## Multiple treatments !!!
+pop2 <- declare_population(noise = "rnorm(n_)", size = 250)
 
-population <- declare_population(noise = "rnorm(n_)", size = 250)
-
-potential_outcomes <- declare_potential_outcomes(formula = Y ~ 5 + 1*Z1 + 2*Z2 - 3*Z1*Z2 + noise,
+po2 <- declare_potential_outcomes(formula = Y ~ 5 + 1*Z1 + 2*Z2 - 3*Z1*Z2 + noise,
                                                  condition_names = list(Z1 = c(0, 1), 
                                                                         Z2 = c(0, 1)),
                                                  assignment_variable_name = c("Z1", "Z2"))
 
-test_that("summary of potantial outcomes works", {
-  expect_silent(summary(potential_outcomes))
+test_that("summary of potantial outcomes with multiple treatments works", {
+  expect_equal(names(summary(po2, extended = FALSE)), "summary_text")
+  expect_equal(names(summary(po2)), c("summary_text", "po_labels", "code"))
+  expect_silent(summary(po2))
 })
 
 ## Declare potential outcomes using potential_outcomes_function
 
-population <- declare_population(noise = "rnorm(n_)", size = 250)
+pop3 <- declare_population(noise = "rnorm(n_)", size = 250)
 
-my_potential_outcomes <- function(data) { with(data, Z * 0.25 + noise) }
+my_po <- function(data) { with(data, Z * 0.25 + noise) }
 
-potential_outcomes <- declare_potential_outcomes(potential_outcomes_function = my_potential_outcomes,
-                                                 outcome_variable_name = 'Y',
-                                                 condition_names = c(0, 1))
+po3 <- declare_potential_outcomes(potential_outcomes_function = my_po,
+                                  outcome_variable_name = 'Y',
+                                  condition_names = c(0, 1))
 
-test_that("summary of potential outcomes using custom function works ",{
-  expect_silent(summary(potential_outcomes))
+test_that("summary of potential outcomes using custom function works",{
+  expect_equal(names(summary(po3, extended = FALSE)), "summary_text")
+  expect_equal(names(summary(po3)), c("summary_text", "po_labels", "code"))
+  expect_silent(summary(po3))
 })
 
 
+## Multiple potential outcomes
 
+pop4 <- declare_population(noise = "rnorm(n_)", size = 250)
 
-# NEW STUFF FOR POs ---------------------------------------------------------------------------
+po4_1 <- declare_potential_outcomes(formula = Y ~ 5 + .5*Z*rnorm(n_) + noise,
+                                    condition_names = c(0, 1),
+                                    assignment_variable_name = "Z")
 
+po4_2 <- declare_potential_outcomes(formula = Y2 ~ 5 + .25*Z + noise,
+                                    inherit_condition_names = TRUE,
+                                    assignment_variable_name = "Z")
 
-
-
-
-names(draw_population(population = population, potential_outcomes = potential_outcomes))
-expect_silent(summary(potential_outcomes))
-
-## Multiple potential outcomes !!!
-
-population <- declare_population(noise = "rnorm(n_)", size = 250)
-
-potential_outcomes_1 <- declare_potential_outcomes(formula = Y ~ 5 + .5*Z*rnorm(n_) + noise,
-                                                    condition_names = c(0, 1),
-                                                    assignment_variable_name = "Z")
-
-potential_outcomes_2 <- declare_potential_outcomes(formula = Y2 ~ 5 + .25*Z + noise,
-                                                    inherit_condition_names = TRUE,
-                                                    assignment_variable_name = "Z")
-
-pop_draw <- draw_population(population = population, 
-                            potential_outcomes = list(potential_outcomes_1, potential_outcomes_2))
-
-expect_output(sapply(list(potential_outcomes_1, potential_outcomes_2), summary) %>% cat(sep = "\n\n"))
+test_that("summary of potential outcomes with multiple potential outcomes works",{
+  expect_equal(length(lapply(list(po4_1, po4_2), summary)), 2)
+  expect_true(all(sapply(X = list(po4_1, po4_2),
+                         FUN = function(x) names(summary(x, extended = FALSE))) == 
+               "summary_text"))
+  expect_true(all(sapply(X = list(po4_1, po4_2),
+                         FUN = function(x) names(summary(x))) == 
+                    c("summary_text", "po_labels", "code")))
+  expect_equal(summary(po4_1)$po_labels[[1]], c("Z_0", "Z_1"))
+  expect_equal(summary(po4_2)$po_labels[[1]], "inherit_condition_names = TRUE. The labels of potential outcomes will be inherited from the first potential_outcomes object created by declare_potential_outcomes with specified condition names.")
+})
 

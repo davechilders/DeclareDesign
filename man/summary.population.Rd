@@ -19,7 +19,7 @@
 \item{...}{Further arguments passed to or from other methods.}
 }
 \value{
-List with two elements. \code{text} contains text explanation of population structure. \code{stat} contains named matrix of summary statistics specified in \code{stat_list}.
+If \code{extended = FALSE} function returns list with one element, \code{summary_text}, which contains text explanation of population structure. If \code{extended = TRUE}, function returns list with 4 elements: \code{summary_text} as explained above, \code{stat}, which contains named matrix of summary statistics specified in \code{stat_list} argument, \code{code}, which contains function call which creates population object supplied, and \code{internal}, which contains list of all necessary data and options to re-create the population object using the \code{code}.
 }
 \description{
 Summary method for population object created by \code{\link{declare_population}}.
