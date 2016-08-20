@@ -2,7 +2,7 @@
 #' 
 #' Potential outcomes are endogenous outcomes of interest that are not under the direct control of the researcher. Examples include whether a drug is offered by a doctor, whether a drug is ingested, whether a patient survives, and whether outcomes are measured. Use this function to define a mapping between manipulands (typically randomly assigned treatments), ancestor variables (typically pre-treatment covariates) and potential outcomes. For instance, you may declare patient survival to be a function of whether or not the patient receives an experimental drug (a randomly assigned treatment) and the patient's pre-treatment health condition (a pre-treatment covariate). This gives rise to two potential outcomes for each patient - whether the patient survives when he receives the drug (treated potential outcome) and whether the patient dies when he does not receive the drug (control potential outcome). 
 #' 
-#' @param potential_outcomes_function A function that takes a data frame as the argument \code{data} and returns a vector of length \code{nrow(data)}. Use to define potential outcomes as a function of treatment assignment(s) and pre-treatment characteristics. See details.
+#' @param potential_outcomes_function A function that takes a data frame as the argument \code{data} and returns a vector of length \code{nrow(data)}. Use to define potential outcomes as a function of treatment assignment(s) and pre-treatment covariates See details.
 #' @param formula An object of class \link{formula} (or one that can be coerced to that class): a symbolic description of the relationship between potential outcomes, treatment assignment(s) and pre-treatment characateristics. See details.
 #' @param outcome_variable_name The name of the outcome variable as a character string. Can be omitted if a formula is provided.
 #' @param condition_names A vector of treatment condition names, such as c(0, 1). If there are multiple treatments, a list of vectors of condition names with one vector for each treatment. Required for the first \code{potential_outcomes} object supplied to a design. Can be omitted for subsequent \code{potential_outcomes} objects if \code{inherit_condition_names = TRUE} is specified. 
@@ -16,10 +16,10 @@
 #' 
 #' @details Use the \code{formula} argument to specify the relationship between potential outcomes, treatment assignments and pre-treatment covariates. A typical formula has the form \code{Y ~ terms}. \code{Y} is the name of the outcome variable. \code{terms} is an expression that typically consists of functions of the treatment assignment indicator(s)  and of the pre-treatment covariates that have been built into the \code{population} object. If a \code{formula} is supplied, there is no need to supply a \code{potential_outcomes_function}.
 #' 
-#'          An alternative way to specify the relationship between potential outcomes, treatment assignments and pre-treatment characteristics is to use the \code{potential_outcomes_function} argument. The function supplied to this argument needs to return an outcome vector of length \code{nrow(data)} when applied to a data frame that contains the following columns: 
+#'          An alternative way to specify the relationship between potential outcomes, treatment assignments and pre-treatment covariates is to use the \code{potential_outcomes_function} argument. The function supplied to this argument needs to return an outcome vector of length \code{nrow(data)} when applied to a data frame that contains the following columns: 
 #'          \itemize{
 #'            \item  one column for each treatment indicator named according to the character string(s) that have been supplied to the \code{assignment_variable_name} argument,
-#'            \item  the pre-treatment characteristics that have been built into the \code{population} object using the \link{declare_population} function.
+#'            \item  the ID variables and pre-treatment covariates that have been built into the \code{population} object using the \link{declare_population} function.
 #'          }
 #'          
 #'          

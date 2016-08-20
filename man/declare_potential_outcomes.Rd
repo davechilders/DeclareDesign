@@ -12,7 +12,7 @@
   description = NULL, ...)
 }
 \arguments{
-\item{potential_outcomes_function}{A function that takes a data frame as the argument \code{data} and returns a vector of length \code{nrow(data)}. Use to define potential outcomes as a function of treatment assignment(s) and pre-treatment characteristics. See details.}
+\item{potential_outcomes_function}{A function that takes a data frame as the argument \code{data} and returns a vector of length \code{nrow(data)}. Use to define potential outcomes as a function of treatment assignment(s) and pre-treatment covariates See details.}
 
 \item{formula}{An object of class \link{formula} (or one that can be coerced to that class): a symbolic description of the relationship between potential outcomes, treatment assignment(s) and pre-treatment characateristics. See details.}
 
@@ -43,10 +43,10 @@ Potential outcomes are endogenous outcomes of interest that are not under the di
 \details{
 Use the \code{formula} argument to specify the relationship between potential outcomes, treatment assignments and pre-treatment covariates. A typical formula has the form \code{Y ~ terms}. \code{Y} is the name of the outcome variable. \code{terms} is an expression that typically consists of functions of the treatment assignment indicator(s)  and of the pre-treatment covariates that have been built into the \code{population} object. If a \code{formula} is supplied, there is no need to supply a \code{potential_outcomes_function}.
 
-         An alternative way to specify the relationship between potential outcomes, treatment assignments and pre-treatment characteristics is to use the \code{potential_outcomes_function} argument. The function supplied to this argument needs to return an outcome vector of length \code{nrow(data)} when applied to a data frame that contains the following columns: 
+         An alternative way to specify the relationship between potential outcomes, treatment assignments and pre-treatment covariates is to use the \code{potential_outcomes_function} argument. The function supplied to this argument needs to return an outcome vector of length \code{nrow(data)} when applied to a data frame that contains the following columns: 
          \itemize{
            \item  one column for each treatment indicator named according to the character string(s) that have been supplied to the \code{assignment_variable_name} argument,
-           \item  the pre-treatment characteristics that have been built into the \code{population} object using the \link{declare_population} function.
+           \item  the ID variables and pre-treatment covariates that have been built into the \code{population} object using the \link{declare_population} function.
          }
          
          
