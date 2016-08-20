@@ -124,7 +124,7 @@ summary.population <- function(object, extended = TRUE,
     data <- draw_population(object)
     var_structure <- environment(object$population)$expressions
     extended_text <- 
-      paste0("\n\nVariable summary (summary statistics for one draw of population)\n\n",
+      paste0("\n\nVariable summary (summary statistics for one draw of population)\n",
              paste(sapply(names(var_structure), 
                           FUN = function(x) if (length(var_structure[[x]]) != 0) { 
                             paste(
@@ -136,7 +136,7 @@ summary.population <- function(object, extended = TRUE,
                             paste("no variables change at the level of the", x)
                           }, simplify = FALSE), 
                    collapse = ", "),
-             ".\n\n")
+             ".\n")
     
   } else if (length(environment(object$population)) == 3) {
     size <- get("size_internal", envir = environment(object$population))
@@ -151,14 +151,14 @@ summary.population <- function(object, extended = TRUE,
       data <- environment(object$population)$data_internal
       extended_text <- 
         summary_text(data = data,
-                     pre = "\n\nVariable summary (summary statistics for user-provided data)\n\n",
+                     pre = "\n\nVariable summary (summary statistics for user-provided data)\n",
                      mid = "specified via user data:")
       
     } else if (is.null(environment(object$population)$data_internal)) {
       data <- draw_population(object)
       extended_text <- 
         summary_text(data = draw_population(object),
-                     pre = "\n\nVariable summary (summary statistics for one draw of population)\n\n",
+                     pre = "\n\nVariable summary (summary statistics for one draw of population)\n",
                      mid = "specified via custom population function:")
     }
   }
@@ -192,7 +192,7 @@ print.summary.population <- function(x, ...){
   if ("extended" %in% class(x)) { 
     cat(x$summary_text) 
     print(x$stat) 
-    if (!is.null(x$code)) cat("\n\nPopulation call\n", x$code, sep = "\n")
+    if (!is.null(x$code)) cat("\n\nPopulation call", x$code, sep = "\n")
   } else {
     cat(x$summary_text)
   }
