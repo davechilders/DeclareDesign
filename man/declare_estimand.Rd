@@ -24,9 +24,9 @@ declare_estimand(estimand_function = NULL, estimand_text = NULL, ...,
 
 \item{attrition}{An attrition object created by \code{\link{declare_attrition}}.}
 
-\item{condition_names}{A vector of treatment condition names, such as c(0, 1). (what is this used for?)}
+\item{condition_names}{A vector of treatment condition names, such as c(0, 1).}
 
-\item{subset}{A character string containing a logical expression that can be passed to the subset argument of the \link{subset} function. For example, "income > 50". Use to declare estimands based on a subset of the units in your population or sample. Typically the subset will be defined based on the pre-treatment covariates that have been built into the \code{population_object} using the \link{declare_population} function.}
+\item{subset}{A character string containing a logical expression that can be passed to the subset argument of the \link{subset} function. For example, "income > 50". Use to declare estimands based on a subset of the units in the population or sample.}
 
 \item{weights_variable_name}{A character string containing the name of the weighting variable. Weighted estimands are not yet implemented. Please contact the authors if you are interested in using them.}
 
@@ -38,10 +38,14 @@ declare_estimand(estimand_function = NULL, estimand_text = NULL, ...,
 An estimand object.
 }
 \description{
-This function creates an estimand object. quantities to be estimated.
+Use this function to define one or more estimands. Estimands are the quantities a researcher wants to estimate. They can be causal quantities like the average treatment effect or noncausal quantities such as the average height of a population. Estimands are typically functions of potential outcomes but they may also depend on realizations of data.
 }
 \details{
-The easiest way to define an estimand is to supply a character string containing an expression that defines the estimand to the \code{estimand_text} argument. Alternatively, use the \code{estimand_function} argument. Both, the expression supplied to \code{estimand_text} and the \code{estimand_function}, need to return the estimand when evaluated on the data frame that results from applying the \link{draw_data} function to the design. Typically, the estimand is a function of potential outcomes. It can also be a function of the ID variables and pre-treatment covariates that have been built into the \code{population_object} using the \link{declare_population} function. If \code{level = "assignment"}, the estimand can also be a function of the treatment indicator and observed outcome. If an \code{estimand_text} is provided, there is no need to supply an \code{estimand_function} and vice versa.
+The easiest way to define an estimand is to supply a character string containing an expression that defines the estimand to the \code{estimand_text} argument. Alternatively, use the \code{estimand_function} argument.
+
+         Both, the expression supplied to \code{estimand_text} and the \code{estimand_function}, need to return the estimand when evaluated on the data frame that results from applying the \link{draw_data} function to the design. The estimand can thus be a function of potential outcomes and pre-treatment covariates that have been built into the \code{population_object} using the \link{declare_population} function. If \code{level = "assignment"}, the estimand can also be made a function of the treatment indicator and observed outcome.
+         
+         If an \code{estimand_text} is provided, there is no need to supply an \code{estimand_function} and vice versa.
 }
 \examples{
 
@@ -91,7 +95,7 @@ get_estimands(estimand, data = data)
 
 ## Declare estimand for different levels
 
-### Estimand on population level 
+### Estimand on population level: Population ATE 
 
 population <- declare_population(noise = "rnorm(n_)", size = 250)
 
@@ -122,7 +126,7 @@ diagnosis <- diagnose_design(design,
                  
 head(diagnosis$simulations)
 
-### Estimand on sample level
+### Estimand on sample level: Sample ATE
 
 estimand_sample <- declare_estimand(estimand_text = "mean(Y_Z_1 - Y_Z_0)", 
                                        potential_outcomes = potential_outcomes,
@@ -140,9 +144,9 @@ diagnosis <- diagnose_design(design,
                                                
 head(diagnosis$simulations)
 
-### Estimand on assignment level
+### Estimand on assignment level: Difference-in-means between treatment and control group
 
-estimand_assignment <- declare_estimand(estimand_text = "mean(Y_Z_1 - Y_Z_0)", 
+estimand_assignment <- declare_estimand(estimand_text = "mean(Y[Z==1] - Y[Z==0])", 
                                        potential_outcomes = potential_outcomes,
                                        estimand_level = "assignment")
                                        
