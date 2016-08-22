@@ -35,6 +35,8 @@
 #' 
 #' estimand <- declare_estimand(estimand_text = "mean(Y_Z_1 - Y_Z_0)", potential_outcomes = potential_outcomes)
 #' 
+#' data <- draw_population(population)
+#' 
 #' get_estimands(estimand, data = data)
 #' 
 #' ## Declare estimand using estimand_function
@@ -48,6 +50,8 @@
 #' my_estimand <- function(data) { with(data, mean(Y_Z_1 - Y_Z_0)) }
 #' 
 #' estimand <- declare_estimand(estimand_function = my_estimand, potential_outcomes = potential_outcomes)
+#' 
+#' data <- draw_population(population)
 #' 
 #' get_estimands(estimand, data = data)
 #' 
