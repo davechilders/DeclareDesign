@@ -10,13 +10,13 @@ declare_estimand(estimand_function = NULL, estimand_text = NULL, ...,
   weights_variable_name = NULL, label = NULL, description = NULL)
 }
 \arguments{
-\item{estimand_function}{A function, possibly of data, that returns a (possibly single-valued) vector of quantities to be estimated.}
+\item{estimand_function}{A function that takes a data frame as the argument \code{data} and returns a (possibly single valued) vector of estimands. See details.}
 
-\item{estimand_text}{A character string that contains an expression that can be evaluated on the data.  For example, you can provide "mean(Y_Z1 - Y_Z0)" to set the estimand as the average difference between the Y_Z1 potential outcome and the Y_Z0 potential outcome.}
+\item{estimand_text}{A character string containing an expression that defines the estimand, typically as  a function of potential outcomes. For example, "mean(Y_Z_1 - Y_Z_0)" declares the estimand to be the average difference between the treated (Y_Z_1) and untreated (Y_Z_0) potential outcomes. See details.}
 
-\item{...}{Include other options to be sent to the \code{estimand_function}.}
+\item{...}{Other arguments passed to the \code{estimand_function}.}
 
-\item{estimand_level}{Level at which the estimand is calculated, either 'population', 'sample', or 'assignment'.}
+\item{estimand_level}{A character string indicating the level at which the estimand is calculated. Can take the values \code{"population"}, \code{"sample"}, and \code{"assignment"}. If \code{"population"}, an estimand will be drawn for each population draw; if \code{"sample"}, an estimand will be drawn for each sample draw; if \code{"assignment"}, an estimand will be drawn for each assignment draw. Defaults to \code{"population"}.}
 
 \item{potential_outcomes}{A potential_outcomes object created by \code{\link{declare_potential_outcomes}}.}
 
@@ -24,20 +24,139 @@ declare_estimand(estimand_function = NULL, estimand_text = NULL, ...,
 
 \item{attrition}{An attrition object created by \code{\link{declare_attrition}}.}
 
-\item{condition_names}{A string vector indicating which conditions to create potential outcomes for.}
+\item{condition_names}{A vector of treatment condition names, such as c(0, 1). (what is this used for?)}
 
-\item{subset}{A character string that contains an expression that can be passed to the subset operator.  For example subset = "income > 50".}
+\item{subset}{A character string containing a logical expression that can be passed to the subset argument of the \link{subset} function. For example, "income > 50". Use to declare estimands based on a subset of the units in your population or sample. Typically the subset will be defined based on the pre-treatment covariates that have been built into the \code{population_object} using the \link{declare_population} function.}
 
-\item{weights_variable_name}{The name of the weighting variable (optional).}
+\item{weights_variable_name}{A character string containing the name of the weighting variable. Weighted estimands are not yet implemented. Please contact the authors if you are interested in using them.}
 
-\item{label}{A character string for the estimand's label.}
+\item{label}{A character string containing the estimand's label. Defaults to \code{estimand_text}.}
 
-\item{description}{A description of the estimand in words.}
+\item{description}{A character string containing a description of the estimand.}
 }
 \value{
 An estimand object.
 }
 \description{
-This function creates an estimand object.
+This function creates an estimand object. quantities to be estimated.
+}
+\details{
+The easiest way to define an estimand is to supply a character string containing an expression that defines the estimand to the \code{estimand_text} argument. Alternatively, use the \code{estimand_function} argument. Both, the expression supplied to \code{estimand_text} and the \code{estimand_function}, need to return the estimand when evaluated on the data frame that results from applying the \link{draw_data} function to the design. Typically, the estimand is a function of potential outcomes. It can also be a function of the ID variables and pre-treatment covariates that have been built into the \code{population_object} using the \link{declare_population} function. If \code{level = "assignment"}, the estimand can also be a function of the treatment indicator and observed outcome. If an \code{estimand_text} is provided, there is no need to supply an \code{estimand_function} and vice versa.
+}
+\examples{
+
+## Declare estimand using estimand_text
+
+population <- declare_population(noise = "rnorm(n_)", size = 250)
+
+potential_outcomes <- declare_potential_outcomes(formula = Y ~ 5 + .5*Z*rnorm(n_) + noise,
+                                                 condition_names = c(0, 1),
+                                                 assignment_variable_name = "Z")
+
+estimand <- declare_estimand(estimand_text = "mean(Y_Z_1 - Y_Z_0)", potential_outcomes = potential_outcomes)
+
+get_estimands(estimand, data = data)
+
+## Declare estimand using estimand_function
+
+population <- declare_population(noise = "rnorm(n_)", size = 250)
+
+potential_outcomes <- declare_potential_outcomes(formula = Y ~ 5 + .5*Z*rnorm(n_) + noise,
+                                                 condition_names = c(0, 1),
+                                                 assignment_variable_name = "Z")
+
+my_estimand <- function(data) { with(data, mean(Y_Z_1 - Y_Z_0)) }
+
+estimand <- declare_estimand(estimand_function = my_estimand, potential_outcomes = potential_outcomes)
+
+get_estimands(estimand, data = data)
+
+## Declare estimand for subset of units
+
+population <- declare_population(noise = "rnorm(n_)", 
+                                 dem = "rbinom(n_, 1, .5)",
+                                 size = 250)
+
+potential_outcomes <- declare_potential_outcomes(formula = Y ~ 5 + .5*Z*rnorm(n_) + noise,
+                                                 condition_names = c(0, 1),
+                                                 assignment_variable_name = "Z")
+
+estimand <- declare_estimand(estimand_text = "mean(Y_Z_1 - Y_Z_0)", 
+                             potential_outcomes = potential_outcomes,
+                             subset = "dem == 1")
+
+data <- draw_population(population)
+
+get_estimands(estimand, data = data)
+
+## Declare estimand for different levels
+
+### Estimand on population level 
+
+population <- declare_population(noise = "rnorm(n_)", size = 250)
+
+sampling <- declare_sampling(n = 100)
+
+potential_outcomes <- declare_potential_outcomes(formula = Y ~ 5 + .5*Z*rnorm(n_) + noise,
+                                                 condition_names = c(0, 1),
+                                                 assignment_variable_name = "Z")
+                                                 
+assignment <- declare_assignment(potential_outcomes=potential_outcomes, probability_each = c(.7, .3))
+
+estimand_population <- declare_estimand(estimand_text = "mean(Y_Z_1 - Y_Z_0)", 
+                                         potential_outcomes = potential_outcomes)
+                                         
+estimator <- declare_estimator(estimates = difference_in_means, formula = Y ~ Z, 
+                               estimand = estimand_population)
+
+design <- declare_design(population = population,
+                         sampling = sampling, 
+                         assignment = assignment, 
+                         estimator = estimator, 
+                         potential_outcomes = potential_outcomes)
+                         
+diagnosis <- diagnose_design(design,
+                             population_draws = 2,
+                             sample_draws = 2,
+                             assignment_draws = 2)
+                 
+head(diagnosis$simulations)
+
+### Estimand on sample level
+
+estimand_sample <- declare_estimand(estimand_text = "mean(Y_Z_1 - Y_Z_0)", 
+                                       potential_outcomes = potential_outcomes,
+                                       estimand_level = "sample")
+                                       
+estimator <- declare_estimator(estimates = difference_in_means, formula = Y ~ Z, 
+                               estimand = estimand_sample)
+
+design <- modify_design(design, estimator = estimator)
+
+diagnosis <- diagnose_design(design,
+                             population_draws = 2,
+                             sample_draws = 2,
+                             assignment_draws = 2)
+                                               
+head(diagnosis$simulations)
+
+### Estimand on assignment level
+
+estimand_assignment <- declare_estimand(estimand_text = "mean(Y_Z_1 - Y_Z_0)", 
+                                       potential_outcomes = potential_outcomes,
+                                       estimand_level = "assignment")
+                                       
+estimator <- declare_estimator(estimates = difference_in_means, formula = Y ~ Z, 
+                               estimand = estimand_assignment)
+
+design <- modify_design(design, estimator = estimator)
+
+diagnosis <- diagnose_design(design,
+                             population_draws = 2,
+                             sample_draws = 2,
+                             assignment_draws = 2)
+                 
+head(diagnosis$simulations)
+
 }
 
