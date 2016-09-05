@@ -52,7 +52,9 @@ Use the \code{formula} argument to specify the relationship between potential ou
          
          There is no need to supply a \code{formula} if a \code{potential_outcomes_function} is supplied.
          
-         The \code{potential_outcomes_function} argument defaults to the \link{default_potential_outcomes_function} which takes the arguments \code{formula} and \code{data} and returns the corresponding outcome vector.    
+         The \code{potential_outcomes_function} argument defaults to the \link{default_potential_outcomes_function} which takes the arguments \code{formula} and \code{data} and returns the corresponding outcome vector.
+         
+         If more than one potential outcomes object is created, subsequent potential outcomes can be functions of previously specified potential outcomes (see examples).    
        
          See the \link{proportion_potential_outcomes_function} for a built-in potential outcomes function that can be used to create proportional potential outcomes.
 }
@@ -111,6 +113,23 @@ Use the \code{formula} argument to specify the relationship between potential ou
  pop_draw <- draw_population(population = population, potential_outcomes = list(potential_outcomes_1, potential_outcomes_2))
  
  head(pop_draw)
+ 
+ ## Potential outcomes as a function of previously specified potential outcomes
+ 
+ population <- declare_population(noise = "rnorm(n_)", size = 250)
+ 
+ potential_outcomes_1 <- declare_potential_outcomes(formula = D ~ (Z == 1) * (noise > 0),
+                                                     condition_names = c(0, 1),
+                                                     assignment_variable_name = "Z")
+
+ potential_outcomes_2 <- declare_potential_outcomes(formula = Y ~ 5 + .5*D*rnorm(n_) + noise,
+                                                     condition_names = c(0, 1),
+                                                     assignment_variable_name = "D")
+                                                     
+ pop_draw <- draw_population(population = population, potential_outcomes = list(potential_outcomes_1, potential_outcomes_2))
+ 
+ head(pop_draw)
+ 
  
 }
 
