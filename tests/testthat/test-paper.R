@@ -466,6 +466,9 @@ test_that("appendix for 'Assigning Multiple Treatments' works", {
   
   # Factorial design with Interaction
   
+  interaction_coefficient <- 0
+  n <- 500
+  
   population <-
     declare_population(noise = "rnorm(n_)", size = 10000)
   sampling <- declare_sampling(n = n)
@@ -522,6 +525,9 @@ test_that("appendix for 'Assigning Multiple Treatments' works", {
   
   # Three arm design
   
+  interaction_coefficient <- 0
+  n <- 500
+  
   population <-
     declare_population(noise = "rnorm(n_)", size = 10000)
   sampling <- declare_sampling(n = n)
@@ -573,7 +579,202 @@ test_that("appendix for 'Assigning Multiple Treatments' works", {
   
 })
 
-# Add in new examples here 
+test_that("section on 'Declaration and Diagnosis of a Bayesian Estimation Strategy' works", {
+  # Model of posterior distribution
+  compute_posterior <- function(
+    # takes data containing y (vector of successes)
+    data,
+    # beta priors
+    alpha_prior = 1,
+    beta_prior = 1,
+    # and deterministic sample from posterior distribution
+    grid_size = 1000) {
+    # Get data
+    y <- data$y
+    # Get domain of unknown proportion parameter
+    domain <- seq(from = .0000001,
+                  to = .9999999,
+                  length.out = grid_size)
+    # Get prior probability over domain
+    prior <- dbeta(x = domain,
+                   shape1 = alpha_prior,
+                   shape2 = beta_prior)
+    # Get likelihood over domain
+    likelihood <- dbinom(x = sum(y),
+                         size = length(y),
+                         prob = domain)
+    # Get unstandardized posterior probs
+    unstd_posterior <- prior * likelihood
+    # Get standardized posterior probs
+    posterior <- unstd_posterior / sum(unstd_posterior)
+    # Return prior probs, posterior probs, and correspoinding values of unknown
+    return(list(
+      prior_prob = prior,
+      posterior_prob = posterior,
+      domain = domain
+    ))
+  }
+  # Estimates function for summarizing posterior inferences
+  get_posterior_estimates <- function(model) {
+    posterior_prob <- model$posterior_prob
+    prior_prob <- model$prior_prob
+    domain <- model$domain
+    # Get Maximum A Posteriori
+    max_apost <- domain[which.max(posterior_prob)]
+    # Get posterior mean
+    mean_post <- sum(domain * posterior_prob)
+    # Re-normalized prior mean
+    prior_prob_n <- prior_prob / sum(prior_prob)
+    mean_prior <- sum(domain * prior_prob_n)
+    # Get prior/posterior variance ratios
+    var_post <- sum(posterior_prob * (domain - mean_post) ^ 2)
+    var_prior <- sum(prior_prob_n * (domain - mean_prior) ^ 2)
+    # Get percent reduction in variance
+    var_red <- (var_post - var_prior) / var_prior
+    # Get variance ratio
+    var_rat <- var_post / var_prior
+    # Get shift in means
+    mean_shift <- mean_post - sum(domain * (prior_prob / sum(prior_prob)))
+    # Get 90% credibility interval
+    cred_low <-
+      domain[which(round(cumsum(posterior_prob), 2) == .1)[1]]
+    upper_pos <- which(round(cumsum(posterior_prob), 2) == .9)
+    cred_upp <- domain[upper_pos[length(upper_pos)]]
+    
+    return(
+      c(
+        max_apost = max_apost,
+        mean_post = mean_post,
+        var_post = var_post,
+        var_prior = var_prior,
+        var_red = var_red,
+        var_rat = var_rat,
+        mean_shift = mean_shift,
+        cred_upp = cred_upp,
+        cred_low = cred_low
+      )
+    )
+  }
+  # Simple DGP
+  population <- declare_population(
+    noise = "runif(n_) - .2",
+    prob_success = "ifelse(noise>1,1,ifelse(noise<0,0,noise))",
+    success = "rbinom(n_,1,prob_success)",
+    size = c(10 ^ 5)
+  )
+  
+  # Sample 100
+  sampling <- declare_sampling(n = 100)
+  
+  # POs with no treatment effect 
+  POs <- declare_potential_outcomes(
+    formula = y ~ success + Z * 0,
+    condition_names = 0:1,
+    assignment_variable_name = "Z"
+  )
+  
+  # Deterministic assignment to make it run
+  assignment <-
+    declare_assignment(
+      custom_assignment_function = function()
+        1,
+      condition_names = 0:1,
+      assignment_variable_name = "Z"
+    )
+  
+  # Estimand is true average underlying success probability
+  estimand <- declare_estimand(
+    estimand_text = "mean(prob_success)", 
+    potential_outcomes = POs,
+    estimand_level = 'population')
+  
+  # One strategy uses flat priors
+  flat_prior <- declare_estimator(
+    model = compute_posterior,
+    model_options = list(
+      alpha_prior = 1,
+      beta_prior = 1,
+      grid_size = 1000
+    ),
+    estimates = get_posterior_estimates,
+    estimand = estimand
+  )
+  
+  # The other uses weakly informative priors
+  info_prior <- declare_estimator(
+    model = compute_posterior,
+    model_options = list(
+      alpha_prior = 2,
+      beta_prior = 2,
+      grid_size = 1000
+    ),
+    estimates = get_posterior_estimates,
+    estimand = estimand
+  )
+  
+  # A range of diagnosands that are specific to Bayes 
+  bayesian_diagnosands <- list(
+    mean_var_red = declare_diagnosand(
+      diagnostic_statistic_text = "var_red",
+      summary_function = mean,
+      label = "Avg. % Reduction in Variance (Prior vs. Posterior)"
+    ),
+    mean_max_apost = declare_diagnosand(
+      diagnostic_statistic_text = "max_apost",
+      summary_function = mean,
+      label = "Avg. Maximum A Posteriori"
+    ),
+    mean_mean_post = declare_diagnosand(
+      diagnostic_statistic_text = "mean_post",
+      summary_function = mean,
+      label = "Avg. Posterior Mean"
+    ),
+    bias_max_apost = declare_diagnosand(
+      diagnostic_statistic_text = "max_apost - estimand",
+      summary_function = mean,
+      label = "Bias in Maximum A Posteriori"
+    ),
+    bias_mean_post = declare_diagnosand(
+      diagnostic_statistic_text = "mean_post - estimand",
+      summary_function = mean,
+      label = "Bias in Posterior Mean"
+    ),
+    coverage_prob = declare_diagnosand(
+      diagnostic_statistic_text = "estimand >= cred_low & estimand <= cred_upp",
+      summary_function = mean,
+      label = "Coverage Probability of Posterior Mean"
+    ),
+    avg_shift = declare_diagnosand(
+      diagnostic_statistic_text = "mean_shift",
+      summary_function = mean,
+      label = "Average Shift in Mean (Prior vs. Posterior)"
+    ),
+    avg_shift = declare_diagnosand(
+      diagnostic_statistic_text = "estimand",
+      summary_function = mean,
+      label = "True Population Proportion"
+    )
+  )
+  
+  # Design declaration
+  design <- declare_design(
+    population = population,
+    sampling = sampling,
+    assignment = assignment,
+    estimator = list(flat_prior, info_prior),
+    potential_outcomes = POs,
+    diagnosand = bayesian_diagnosands
+  )
+  
+  # Diagnosis
+  diagnosis <- diagnose_design(
+    design = design,
+    population_draws = 1,
+    sample_draws = 100,
+    assignment_draws = 1,
+    bootstrap_diagnosands = F
+  )
+})
 
 
 
