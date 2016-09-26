@@ -778,3 +778,56 @@ test_that("section on 'Declaration and Diagnosis of a Bayesian Estimation Strate
 
 
 
+# "Descriptive Design" ------------------------------
+
+test_that("section on 'Descriptive Design' works", {
+  
+  population <- declare_population(latent_voting = "rnorm(n_)",
+                                   latent_HRC_support = ".1*latent_voting + rnorm(n_) - .1",
+                                   voter = "rbinom(n_, 1, prob = pnorm(latent_voting))",
+                                   HRC_supporter = "rbinom(n_, 1, prob = pnorm(latent_HRC_support))",
+                                   likely_voter = "rbinom(n_, 1, prob = pnorm(latent_voting - 2))",
+                                   size = 10000)
+  sampling <- declare_sampling(n = 1000)
+  estimand <- declare_estimand(estimand_text = "mean(HRC_supporter[voter==1])", potential_outcomes = potential_outcomes)
+  
+  HRC_estimator <- function(data) {
+  
+    se_mean <- function(x){
+    n <- length(x)
+    return(sd(x)/(sqrt(n)))
+    }
+    
+    est = with(data, mean(HRC_supporter[likely_voter == 1]))
+    se = with(data, se_mean(HRC_supporter[likely_voter == 1]))
+    
+    return_df <- data.frame(
+      est = est,
+      se = se,
+      p = pnorm(est, mean = .5, sd = se, lower.tail = FALSE), # Null hypothesis is that HRC support is 50% or lower
+      ci_lower = est - 1.96 * se,
+      ci_upper = est + 1.96 * se
+    )
+    return(return_df)
+  }
+  
+  estimator <- declare_estimator(estimates = HRC_estimator, estimand = estimand)
+  
+  mean_estimand = declare_diagnosand(
+    diagnostic_statistic_text = "mean(estimand)",
+    summary_function = mean,
+    label = "mean(estimand)"
+  )
+  
+  # these two declarations shouldn't have to be made  
+  potential_outcomes <- declare_potential_outcomes(formula = Y ~ 5, condition_names = c(0, 1), assignment_variable_name = "Z")
+  assignment <- declare_assignment(potential_outcomes=potential_outcomes, probability_each = c(.7, .3))
+  
+  design <- declare_design(population = population, sampling = sampling, 
+                           potential_outcomes = potential_outcomes, assignment = assignment, estimator = estimator,
+                           diagnosand = list(mean_estimand, mean_estimate, sd_estimate, power, bias, rmse, coverage))
+  
+  diagnosis <- diagnose_design(design, population_draws = 1000, population_replicates = 1, sample_draws = 1, assignment_draws = 1, bootstrap_diagnosands = FALSE)
+  diagnosis
+})
+
