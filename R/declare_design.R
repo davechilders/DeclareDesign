@@ -14,7 +14,7 @@
 #' @return A design object
 #' 
 #' @export
-declare_design <- function(population, sampling = NULL, assignment, estimator = NULL, 
+declare_design <- function(population, sampling = declare_sampling(sampling = FALSE), assignment, estimator = NULL, 
                            potential_outcomes, 
                            diagnosand = list(mean_estimate, sd_estimate, bias, rmse, coverage, power, type_s_rate), 
                            inputs = NULL, label = NULL, description = NULL) {
