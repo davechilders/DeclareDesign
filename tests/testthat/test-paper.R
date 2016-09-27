@@ -1,6 +1,7 @@
 rm(list = ls())
 library(testthat)
 library(DeclareDesign)
+library(Matching)
 
 context("Checking Code in Paper Works")
 
@@ -776,8 +777,107 @@ test_that("section on 'Declaration and Diagnosis of a Bayesian Estimation Strate
   )
 })
 
+# "Matching Design" ------------------------------
+  
+test_that("section on 'Matching' works",{
+  # The population has three normally distributed covariate
+  population <- declare_population(X1 = "rnorm(n_)",
+                                   X2 = "rnorm(n_)",
+                                   X3 = "rnorm(n_)",
+                                   size = 5000)
 
-
+  # The design samples 1000 units at random
+  sampling <- declare_sampling(n = 1000)
+  # The potential outcomes of each unit are a linea
+  # combination of their covariates and the treatment effect (Z) of 1
+  potential_outcomes <-
+    declare_potential_outcomes(
+      formula = Y ~ 5 + X1 + X2 + X3 + Z,
+      condition_names = c(0, 1),
+      assignment_variable_name = "Z"
+    )
+  # A custom function assigns treatment as a function of the three covariates
+  my_custom_assignment <- function(data) {
+    prob <- pnorm(data$X1 + data$X2 + data$X3)
+    return(rbinom(
+      n = nrow(data),
+      size = 1,
+      prob = prob
+    ))
+  }
+  # And the assignment procedure is declared
+  assignment <-
+    declare_assignment(potential_outcomes = potential_outcomes,
+                       custom_assignment_function = my_custom_assignment)
+  # The estimand is the average treatment effect among the treated (ATT)
+  estimand <-
+    declare_estimand(
+      estimand_text = "mean(Y_Z_1[Z==1] - Y_Z_0[Z==1])",
+      potential_outcomes = potential_outcomes,
+      estimand_level = "assignment"
+    )
+  # One (non-matching) estimator to use as a benchmark is a simple
+  # difference in means, for which we use the in-build difference_in_means
+  estimator_d_i_m <-
+    declare_estimator(
+      estimates = difference_in_means,
+      formula = Y ~ Z,
+      estimand = estimand,
+      label = "dim"
+    )
+  # Compare to a custom estimator that uses matching
+  matching_estimator <- function(data) {
+    # The data is first matched and the effects
+    # estimated
+    match_out <-
+      with(data, Match(
+        Y = Y,
+        Tr = Z,
+        X = cbind(X1, X2, X3),
+        estimand = "ATT"
+      ))
+    # Then the different estimates are returned
+    # in a dataframe
+    est <- match_out$est
+    se <- match_out$se
+    p <- 2 * (1 - pnorm(
+      q = as.numeric(abs(est)),
+      sd = se,
+      lower.tail = TRUE
+    ))
+    return_df <- data.frame(
+      est = est,
+      se = se,
+      p = p,
+      ci_lower = est - 1.96 * se,
+      ci_upper = est + 1.96 * se
+    )
+    return(return_df)
+  }
+  # Declare the matching estimator
+  estimator_m <-
+    declare_estimator(estimates = matching_estimator,
+                      estimand = estimand,
+                      label = "matching")
+  # Declare the design
+  design <- declare_design(
+    population = population,
+    sampling = sampling,
+    assignment = assignment,
+    estimator = list(estimator_d_i_m, estimator_m),
+    potential_outcomes = potential_outcomes
+  )
+  # Diagnose design
+  diagnose_design(
+    design = design,
+    population_draws = 1,
+    sample_draws = 1,
+    assignment_draws = 1000,
+    bootstrap_diagnosands = FALSE
+  )
+})
+  
+  
 # "Descriptive Design" ------------------------------
 
 test_that("section on 'Descriptive Design' works", {
@@ -789,6 +889,11 @@ test_that("section on 'Descriptive Design' works", {
                                    likely_voter = "rbinom(n_, 1, prob = pnorm(latent_voting - 2))",
                                    size = 10000)
   sampling <- declare_sampling(n = 1000)
+  
+  # these two declarations shouldn't have to be made  
+  potential_outcomes <- declare_potential_outcomes(formula = Y ~ 5, condition_names = c(0, 1), assignment_variable_name = "Z")
+  assignment <- declare_assignment(potential_outcomes=potential_outcomes, probability_each = c(.7, .3))
+  
   estimand <- declare_estimand(estimand_text = "mean(HRC_supporter[voter==1])", potential_outcomes = potential_outcomes)
   
   HRC_estimator <- function(data) {
@@ -819,9 +924,6 @@ test_that("section on 'Descriptive Design' works", {
     label = "mean(estimand)"
   )
   
-  # these two declarations shouldn't have to be made  
-  potential_outcomes <- declare_potential_outcomes(formula = Y ~ 5, condition_names = c(0, 1), assignment_variable_name = "Z")
-  assignment <- declare_assignment(potential_outcomes=potential_outcomes, probability_each = c(.7, .3))
   
   design <- declare_design(population = population, sampling = sampling, 
                            potential_outcomes = potential_outcomes, assignment = assignment, estimator = estimator,

@@ -25,7 +25,8 @@ Suggests:
     dplyr,
     sna,
     reshape2,
-    sandwich
+    sandwich,
+    Matching
 License: All rights reserved
 LazyData: true
 RoxygenNote: 5.0.1
