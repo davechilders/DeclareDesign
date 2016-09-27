@@ -157,6 +157,7 @@ declare_assignment <-
            custom_clustering_function = NULL,
            existing_assignment_variable_name = NULL,
            description = NULL,
+           assignment = TRUE,
            ...) {
     
     # Determine assignment type
@@ -166,6 +167,11 @@ declare_assignment <-
     if(!is.null(cluster_variable_name) & !is.null(block_variable_name)) {
       assignment_type <- "blocked and clustered"
     }
+    
+    if(!assignment){
+      assignment_type <- "none"
+    } else {
+      
     
     # Checks ------------------------------------------------------------------
     if(assignment_type == "blocked" & !is.null(m)){
@@ -239,7 +245,7 @@ declare_assignment <-
           custom_assignment_function_options$block_probabilities <- block_probabilities
     }
     
-    
+    }
     
     if(is.null(custom_assignment_function) & is.null(existing_assignment_variable_name)){
       return.object <- list(block_variable_name = block_variable_name,

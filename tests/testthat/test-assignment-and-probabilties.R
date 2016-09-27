@@ -160,3 +160,26 @@ test_that("test assignment and probability functions", {
   with(smp_draw, table(Z, Z2))
   
 })
+
+
+test_that("Assignment = FALSE", {
+  
+  population <- declare_population(noise = "rnorm(n_)", size = 250)
+  estimand <- declare_estimand(estimand_text = "mean(noise)", potential_outcomes = potential_outcomes)
+  estimator <- declare_estimator(formula = noise~1, 
+                                 estimates = get_regression_coefficient,
+                                 coefficient_name = "(Intercept)",
+                                 estimand = estimand)
+  potential_outcomes <- declare_potential_outcomes(formula = noise~1,
+                                                   condition_names = c(0, 1),
+                                                   assignment_variable_name = "Z")
+  
+  # Diagnosis ---------------------------------------------------------------
+  
+  design <- declare_design(population = population, estimator = estimator, potential_outcomes = potential_outcomes)
+  
+  summ <- summary(design)
+  
+  diagnosis <- diagnose_design(design = design)
+})
+

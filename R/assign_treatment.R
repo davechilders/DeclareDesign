@@ -184,6 +184,10 @@ assign_treatment_indicator <- function(data, assignment) {
                                           baseline_condition=baseline_condition)
   }
   
+  if(assignment_type=="none"){
+    Z <- rep(1, N)
+  }
+  
   return(Z)
 }
 

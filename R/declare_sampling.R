@@ -38,8 +38,8 @@ declare_sampling <- function(probability = NULL,
   }
   if(!sampling){
     sampling_type <- "none"
-  }
-  
+  }else{
+    
   # Checks ------------------------------------------------------------------
   if(sampling_type == "stratified" & !is.null(n)){
     stop("Please do not specify n in a stratified sampling design.  Use strata_n or strata_probabilities instead.")
@@ -68,7 +68,7 @@ declare_sampling <- function(probability = NULL,
     if(!is.null(strata_probabilities) & "strata_probabilities" %in% argument_names)
       custom_sampling_function_options$strata_probabilities <- strata_probabilities
   }
-  
+  }
   
   
   if(is.null(custom_sampling_function)){
