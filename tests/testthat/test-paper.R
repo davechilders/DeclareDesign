@@ -1,6 +1,7 @@
 rm(list = ls())
 library(testthat)
 library(DeclareDesign)
+library(Matching)
 
 context("Checking Code in Paper Works")
 
@@ -779,7 +780,6 @@ test_that("section on 'Declaration and Diagnosis of a Bayesian Estimation Strate
 # "Matching Design" ------------------------------
   
 test_that("section on 'Matching' works",{
-  library(Matching)
   # The population has three normally distributed covariate
   population <- declare_population(X1 = "rnorm(n_)",
                                    X2 = "rnorm(n_)",
@@ -889,6 +889,11 @@ test_that("section on 'Descriptive Design' works", {
                                    likely_voter = "rbinom(n_, 1, prob = pnorm(latent_voting - 2))",
                                    size = 10000)
   sampling <- declare_sampling(n = 1000)
+  
+  # these two declarations shouldn't have to be made  
+  potential_outcomes <- declare_potential_outcomes(formula = Y ~ 5, condition_names = c(0, 1), assignment_variable_name = "Z")
+  assignment <- declare_assignment(potential_outcomes=potential_outcomes, probability_each = c(.7, .3))
+  
   estimand <- declare_estimand(estimand_text = "mean(HRC_supporter[voter==1])", potential_outcomes = potential_outcomes)
   
   HRC_estimator <- function(data) {
@@ -919,9 +924,6 @@ test_that("section on 'Descriptive Design' works", {
     label = "mean(estimand)"
   )
   
-  # these two declarations shouldn't have to be made  
-  potential_outcomes <- declare_potential_outcomes(formula = Y ~ 5, condition_names = c(0, 1), assignment_variable_name = "Z")
-  assignment <- declare_assignment(potential_outcomes=potential_outcomes, probability_each = c(.7, .3))
   
   design <- declare_design(population = population, sampling = sampling, 
                            potential_outcomes = potential_outcomes, assignment = assignment, estimator = estimator,
