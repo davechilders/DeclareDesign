@@ -674,15 +674,6 @@ test_that("section on 'Declaration and Diagnosis of a Bayesian Estimation Strate
     assignment_variable_name = "Z"
   )
   
-  # Deterministic assignment to make it run
-  assignment <-
-    declare_assignment(
-      custom_assignment_function = function()
-        1,
-      condition_names = 0:1,
-      assignment_variable_name = "Z"
-    )
-  
   # Estimand is true average underlying success probability
   estimand <- declare_estimand(
     estimand_text = "mean(prob_success)", 
@@ -761,7 +752,6 @@ test_that("section on 'Declaration and Diagnosis of a Bayesian Estimation Strate
   design <- declare_design(
     population = population,
     sampling = sampling,
-    assignment = assignment,
     estimator = list(flat_prior, info_prior),
     potential_outcomes = POs,
     diagnosand = bayesian_diagnosands
@@ -893,17 +883,7 @@ test_that("section on 'Descriptive Design' works", {
   )
   # Sample 1000 people at random
   sampling <- declare_sampling(n = 1000)
-  # In future, these two declarations won't have to be made, 
-  # as this is a descriptive design
-  potential_outcomes <-
-    declare_potential_outcomes(
-      formula = Y ~ 5,
-      condition_names = c(0, 1),
-      assignment_variable_name = "Z"
-    )
-  assignment <-
-    declare_assignment(potential_outcomes = potential_outcomes,
-                       probability_each = c(.7, .3))
+  
   # The estimand is simply the amount of votes HRC will receive
   estimand <-
     declare_estimand(estimand_text = "mean(HRC_supporter[voter==1])",
@@ -945,8 +925,6 @@ test_that("section on 'Descriptive Design' works", {
   design <- declare_design(
     population = population,
     sampling = sampling,
-    potential_outcomes = potential_outcomes,
-    assignment = assignment,
     estimator = estimator,
     diagnosand = list(
       mean_estimand,
