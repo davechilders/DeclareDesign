@@ -947,3 +947,53 @@ test_that("section on 'Descriptive Design' works", {
   )
 })
 
+test_that("model-based inference example works",{
+  # U
+  U <- declare_population(
+                  u      =  declare_variable(),
+                  size   =  10
+                  )
+
+  # Y is a concave function of treatment
+  Y    <- declare_potential_outcomes(
+                condition_names = list(Z = 1:3),
+                potential_outcomes_function = function(data) {
+                  with(data, 0*(Z==1) + 3*(Z==2) + 4*(Z==3) + u)},
+                outcome_variable_name = "Y",
+                assignment_variable_name = "Z")
+
+
+  # Model based estimand: generated as coeficient from model on superdata
+  f_tau    <- function(data)  { YY = with(data, c(Y_Z_1,Y_Z_2, Y_Z_3))
+                                XX = rep(1:3, each = nrow(data))
+                                coef(lm(YY~XX))[2]}
+
+  tau       <- declare_estimand(estimand_function = f_tau, potential_outcomes = Y)
+
+  # Assignment
+  p_Z  <- declare_assignment(condition_names = 1:3, probability_each = c(1,1,1)/3)
+  p_Z  <- declare_assignment(condition_names = 1:3, probability_each = c(.4, .4, .2))
+
+  # Estimates
+  b <- declare_estimator(
+    formula           = Y ~ Z, 
+    model             = lm, 
+    estimates         = get_regression_coefficient, 
+    coefficient_name  = "Z",
+    estimand          = tau,
+    labels            = "OLS")
+
+
+  # Declare design
+  model_design <- declare_design(population = U, 
+                                   sampling = declare_sampling(sampling = FALSE), 
+                                   assignment = p_Z, 
+                                   estimator = b,
+                                   potential_outcomes = Y, 
+                                   label = "simple_panel")
+
+  # Diagnose
+  diagnose_design(design = model_design, 
+                  population_draws = 500, 
+                  sample_draws = 1)
+})
