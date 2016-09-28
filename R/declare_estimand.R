@@ -21,7 +21,7 @@
 #' @export
 declare_estimand <- function(estimand_function = NULL, estimand_text = NULL,
                              ..., estimand_level = "population", 
-                             potential_outcomes, noncompliance = NULL, attrition = NULL,
+                             potential_outcomes = NULL, noncompliance = NULL, attrition = NULL,
                              condition_names = NULL,
                              subset = NULL, weights_variable_name = NULL, 
                              label = NULL, description = NULL) {
@@ -39,10 +39,6 @@ declare_estimand <- function(estimand_function = NULL, estimand_text = NULL,
   
   if(!is.null(estimand_function) & !is.null(estimand_text)){
     stop("Please provide either estimand_function or estimand_text.")
-  }
-  
-  if(is.null(potential_outcomes)){
-    stop("Please provide a potential_outcomes object. This is used to create the potential outcomes before calculating the estimand.")
   }
   
   if(!(estimand_level %in% c("population", "sample", "assignment"))){
@@ -149,24 +145,28 @@ get_estimands <- function(estimand = NULL, estimator = NULL, data){
         if(!is.null(estimand[[i]])){
           
           ## if there is an estimand defined
-          has_potential_outcomes <- has_potential_outcomes(data = data, 
-                                                           potential_outcomes = estimand[[i]]$potential_outcomes, 
-                                                           attrition = estimand[[i]]$attrition, 
-                                                           noncompliance = estimand[[i]]$noncompliance,
-                                                           condition_names = estimand[[i]]$condition_names)
-          
-          if(has_potential_outcomes == TRUE){
+          if(!is.null(estimand[[i]]$potential_outcomes)){
+            has_potential_outcomes <- has_potential_outcomes(data = data, 
+                                                             potential_outcomes = estimand[[i]]$potential_outcomes, 
+                                                             attrition = estimand[[i]]$attrition, 
+                                                             noncompliance = estimand[[i]]$noncompliance,
+                                                             condition_names = estimand[[i]]$condition_names)
             
-            ## if PO's already exist, do not create them
-            estimands_list[[i]] <- estimand[[i]]$estimand(data = data)
-            
+            if(has_potential_outcomes == TRUE){
+              
+              ## if PO's already exist, do not create them
+              estimands_list[[i]] <- estimand[[i]]$estimand(data = data)
+              
+            } else {
+              
+              ## otherwise, use draw_potential_outcomes to create them
+              estimands_list[[i]] <- estimand[[i]]$estimand(data = draw_potential_outcomes(data = data, potential_outcomes = estimand[[i]]$potential_outcomes,  
+                                                                                           attrition = estimand[[i]]$attrition, noncompliance = estimand[[i]]$noncompliance,
+                                                                                           condition_names = estimand[[i]]$condition_names))
+              
+            }
           } else {
-            
-            ## otherwise, use draw_potential_outcomes to create them
-            estimands_list[[i]] <- estimand[[i]]$estimand(data = draw_potential_outcomes(data = data, potential_outcomes = estimand[[i]]$potential_outcomes,  
-                                                                                         attrition = estimand[[i]]$attrition, noncompliance = estimand[[i]]$noncompliance,
-                                                                                         condition_names = estimand[[i]]$condition_names))
-            
+            estimands_list[[i]] <- estimand[[i]]$estimand(data = data)
           }
         } else {
           ## if there is NOT an estimand defined

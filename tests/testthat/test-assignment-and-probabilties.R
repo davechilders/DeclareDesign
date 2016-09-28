@@ -165,7 +165,7 @@ test_that("test assignment and probability functions", {
 test_that("Assignment = FALSE", {
   
   population <- declare_population(noise = "rnorm(n_)", size = 250)
-  estimand <- declare_estimand(estimand_text = "mean(noise)", potential_outcomes = potential_outcomes)
+  estimand <- declare_estimand(estimand_text = "mean(noise)")
   estimator <- declare_estimator(formula = noise~1, 
                                  estimates = get_regression_coefficient,
                                  coefficient_name = "(Intercept)",

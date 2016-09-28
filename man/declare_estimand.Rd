@@ -5,9 +5,10 @@
 \title{Declare Estimand}
 \usage{
 declare_estimand(estimand_function = NULL, estimand_text = NULL, ...,
-  estimand_level = "population", potential_outcomes, noncompliance = NULL,
-  attrition = NULL, condition_names = NULL, subset = NULL,
-  weights_variable_name = NULL, label = NULL, description = NULL)
+  estimand_level = "population", potential_outcomes = NULL,
+  noncompliance = NULL, attrition = NULL, condition_names = NULL,
+  subset = NULL, weights_variable_name = NULL, label = NULL,
+  description = NULL)
 }
 \arguments{
 \item{estimand_function}{A function, possibly of data, that returns a (possibly single-valued) vector of quantities to be estimated.}

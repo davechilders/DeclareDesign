@@ -7,8 +7,9 @@
 declare_design(population, sampling = declare_sampling(sampling = FALSE),
   assignment = declare_assignment(assignment = FALSE), estimator = NULL,
   potential_outcomes = declare_potential_outcomes(potential_outcomes = FALSE),
-  diagnosand = list(mean_estimate, sd_estimate, bias, rmse, coverage, power,
-  type_s_rate), inputs = NULL, label = NULL, description = NULL)
+  diagnosand = list(mean_estimate, mean_estimand, sd_estimate, bias, rmse,
+  coverage, power, type_s_rate), inputs = NULL, label = NULL,
+  description = NULL)
 }
 \arguments{
 \item{population}{A population object, as created by \code{\link{declare_population}}.}
