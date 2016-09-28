@@ -13,7 +13,7 @@ Description: Tools for characterizing, diagnosing, and pre-registering research
     design. Finalized designs can be straightforwardly pre-registered with the
     package.
 Depends:
-    R (>= 3.3.0)
+    R (>= 3.2.1)
 Imports:
     foreach,
     doRNG,
