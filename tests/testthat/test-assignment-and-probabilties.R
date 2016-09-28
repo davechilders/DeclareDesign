@@ -21,7 +21,7 @@ test_that("test assignment and probability functions", {
   assignment_0 <- declare_assignment(potential_outcomes = potential_outcomes)
   assignment_1 <- declare_assignment(potential_outcomes = potential_outcomes, condition_names = c(0, 1))
   assignment_2 <- declare_assignment(potential_outcomes = potential_outcomes, m = 60, condition_names = c(0, 1))
-  assignment_3 <- declare_assignment(potential_outcomes = potential_outcomes, m_each =c(20, 30, 50))
+  assignment_3 <- declare_assignment(potential_outcomes = potential_outcomes, m_each = c(20, 30, 50))
   assignment_4 <- declare_assignment(potential_outcomes = potential_outcomes, m_each =c(20, 80), condition_names = c(0, 1))
   assignment_5 <- declare_assignment(potential_outcomes = potential_outcomes, probability_each = c(.2, .3, .5))
   

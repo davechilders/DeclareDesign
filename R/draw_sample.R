@@ -32,7 +32,7 @@ draw_sample <- function(data, sampling = NULL) {
   
   # Draw the sample ------------------------------------------------------
   
-  if(sampling$sampling == TRUE){
+  if(sampling$sampling_type != "none"){
     
     Z <- draw_sample_indicator(data = data, sampling = sampling)
     
