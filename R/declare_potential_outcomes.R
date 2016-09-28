@@ -22,7 +22,24 @@ declare_potential_outcomes <- function(
   condition_names = NULL, inherit_condition_names = FALSE, sep = "_", 
   assignment_variable_name = "Z",
   interference = NULL, attrition = NULL,
-  description = NULL, ...){
+  description = NULL,
+  potential_outcomes = TRUE,
+  ...){
+  
+  if(potential_outcomes == FALSE){
+    return(structure(
+      list(potential_outcomes = FALSE,
+           potential_outcomes_function = default_potential_outcomes_function,
+           outcome_variable_name = "Y",
+           condition_names = c(0),
+           assignment_variable_name = "Z",
+           interference = NULL, attrition = NULL,
+           inherit_condition_names = FALSE,
+           sep = "_",
+           description = NULL, call = match.call()),
+      class = "potential_outcomes"
+    ))
+  }
   
   if(inherit_condition_names == FALSE & is.null(condition_names)){
     stop("Please either provide condition_names or set inherit_condition_names to TRUE. The first potential_outcomes created in a design must include condition_names.")
@@ -80,6 +97,7 @@ declare_potential_outcomes <- function(
                         assignment_variable_name = assignment_variable_name,
                         interference = interference,
                         attrition = attrition, description = description,
+                        potential_outcomes = potential_outcomes,
                         call = match.call())
   
   structure(return_object, class = "potential_outcomes")

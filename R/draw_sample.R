@@ -32,23 +32,26 @@ draw_sample <- function(data, sampling = NULL) {
   
   # Draw the sample ------------------------------------------------------
   
-  Z <- draw_sample_indicator(data = data, sampling = sampling)
-  
-  if(!(sampling$sampling_type == "custom")){
-    inclusion_probabilities <- get_sampling_probabilities(data = data, sampling = sampling)
-    sampling_data <- data.frame(sampled = Z, inclusion_probabilities = inclusion_probabilities, sampling_weights = 1/inclusion_probabilities)
+  if(sampling$sampling == TRUE){
+    
+    Z <- draw_sample_indicator(data = data, sampling = sampling)
+    
+    if(!(sampling$sampling_type == "custom")){
+      inclusion_probabilities <- get_sampling_probabilities(data = data, sampling = sampling)
+      sampling_data <- data.frame(sampled = Z, inclusion_probabilities = inclusion_probabilities, sampling_weights = 1/inclusion_probabilities)
+    } else {
+      sampling_data <- data.frame(sampled = Z)
+    }
+    
+    data <- data.frame(data, sampling_data)
+    
+    sample_data <- data[data$sampled == 1, ]
+    sample_data$sampled <- NULL
+    
+    return(sample_data)
   } else {
-    sampling_data <- data.frame(sampled = Z)
-  }
-  
-  data <- data.frame(data, sampling_data)
-  
-  sample_data <- data[data$sampled == 1, ]
-  sample_data$sampled <- NULL
-  
-  # Return data -------------------------------------------------------------
-  
-  return(sample_data)
+    return(data)
+  } 
   
 }
 

@@ -64,64 +64,66 @@ draw_potential_outcomes <- function(data, condition_names = NULL, potential_outc
   
   if(has_condition_names & has_assignment_variable_names) {
     for(i in 1:length(potential_outcomes)){
-      
-      # make the combinations
-      
-      sep = potential_outcomes[[i]]$sep
-      
-      condition_combinations <- expand.grid(condition_names[[i]])
-      if(is.null(names(condition_names[[i]]))){
-        colnames(condition_combinations) <- potential_outcomes[[i]]$assignment_variable_name
-      }
-      
-      for(j in 1:nrow(condition_combinations)){
+      if(potential_outcomes[[i]]$potential_outcomes == TRUE){
         
-        if(ncol(condition_combinations) > 1){
-          condition_combination <- lapply(1:ncol(condition_combinations[j, ]), function(x){ condition_combinations[j, x] })
-        } else {
-          condition_combination <- list(condition_combinations[j, ])
+        # make the combinations
+        
+        sep = potential_outcomes[[i]]$sep
+        
+        condition_combinations <- expand.grid(condition_names[[i]])
+        if(is.null(names(condition_names[[i]]))){
+          colnames(condition_combinations) <- potential_outcomes[[i]]$assignment_variable_name
         }
-        names(condition_combination) <- colnames(condition_combinations)
         
-        outcome_name_internal <- 
-          paste(potential_outcomes[[i]]$outcome_variable_name, 
-                paste(names(condition_combination), condition_combinations[j,], sep = sep, collapse = sep),
-                sep = sep)
-        
-        data[,outcome_name_internal] <- 
-          draw_potential_outcome_vector(data = data, 
-                                        potential_outcomes = potential_outcomes[[i]],
-                                        condition_name = condition_combination)
-      }
-      
-      if(!is.null(noncompliance) & class(potential_outcomes[[i]]) != "noncompliance"){
-        
-        for(j in condition_names[[i]]){
-          local_d_column <- paste(noncompliance$outcome_variable_name, noncompliance$assignment_variable_name, j, sep = noncompliance$sep)
-          local_y_z_column <- paste(potential_outcomes[[i]]$outcome_variable_name, noncompliance$assignment_variable_name,
-                                    j, sep = potential_outcomes[[i]]$sep)
-          data[, local_y_z_column] <- NA
-          local_d_values <- unique(data[, local_d_column])
+        for(j in 1:nrow(condition_combinations)){
           
-          for(k in local_d_values){
-            local_y_d_column <- paste(potential_outcomes[[i]]$outcome_variable_name, potential_outcomes[[i]]$assignment_variable_name, k,
-                                      sep = potential_outcomes[[i]]$sep)
-            data[data[,local_d_column] == k, local_y_z_column] <- data[data[,local_d_column] == k, local_y_d_column]
+          if(ncol(condition_combinations) > 1){
+            condition_combination <- lapply(1:ncol(condition_combinations[j, ]), function(x){ condition_combinations[j, x] })
+          } else {
+            condition_combination <- list(condition_combinations[j, ])
           }
+          names(condition_combination) <- colnames(condition_combinations)
+          
+          outcome_name_internal <- 
+            paste(potential_outcomes[[i]]$outcome_variable_name, 
+                  paste(names(condition_combination), condition_combinations[j,], sep = sep, collapse = sep),
+                  sep = sep)
+          
+          data[,outcome_name_internal] <- 
+            draw_potential_outcome_vector(data = data, 
+                                          potential_outcomes = potential_outcomes[[i]],
+                                          condition_name = condition_combination)
         }
         
+        if(!is.null(noncompliance) & class(potential_outcomes[[i]]) != "noncompliance"){
+          
+          for(j in condition_names[[i]]){
+            local_d_column <- paste(noncompliance$outcome_variable_name, noncompliance$assignment_variable_name, j, sep = noncompliance$sep)
+            local_y_z_column <- paste(potential_outcomes[[i]]$outcome_variable_name, noncompliance$assignment_variable_name,
+                                      j, sep = potential_outcomes[[i]]$sep)
+            data[, local_y_z_column] <- NA
+            local_d_values <- unique(data[, local_d_column])
+            
+            for(k in local_d_values){
+              local_y_d_column <- paste(potential_outcomes[[i]]$outcome_variable_name, potential_outcomes[[i]]$assignment_variable_name, k,
+                                        sep = potential_outcomes[[i]]$sep)
+              data[data[,local_d_column] == k, local_y_z_column] <- data[data[,local_d_column] == k, local_y_d_column]
+            }
+          }
+          
+        }
+        
+        if(!is.null(potential_outcomes[[i]]$attrition)){
+          data <- draw_potential_outcomes(data = data, 
+                                          potential_outcomes = potential_outcomes[[i]]$attrition, 
+                                          condition_names= condition_combination)
+        }
       }
-      
-      if(!is.null(potential_outcomes[[i]]$attrition)){
+      if(!is.null(attrition)){
         data <- draw_potential_outcomes(data = data, 
-                                        potential_outcomes = potential_outcomes[[i]]$attrition, 
-                                        condition_names= condition_combination)
+                                        potential_outcomes = attrition, 
+                                        condition_names = attrition$condition_names)
       }
-    }
-    if(!is.null(attrition)){
-      data <- draw_potential_outcomes(data = data, 
-                                      potential_outcomes = attrition, 
-                                      condition_names = attrition$condition_names)
     }
   }
   return(data)
@@ -207,16 +209,21 @@ draw_outcome <- function(data, condition_names = NULL, potential_outcomes,
     
     
     for(i in 1:length(potential_outcomes)){
-      data <- draw_observed_outcome(data = data, 
-                                    potential_outcomes = potential_outcomes[[i]], 
-                                    condition_names= condition_names[[i]])
       
-      if(!is.null(potential_outcomes[[i]]$attrition)){
+      if(potential_outcomes[[i]]$potential_outcomes == TRUE){
+        
         data <- draw_observed_outcome(data = data, 
-                                      potential_outcomes = potential_outcomes[[i]]$attrition, 
+                                      potential_outcomes = potential_outcomes[[i]], 
                                       condition_names= condition_names[[i]])
         
-        data[data[,potential_outcomes[[i]]$attrition$outcome_variable_name]==0, potential_outcomes[[i]]$outcome_variable_name] <- NA
+        if(!is.null(potential_outcomes[[i]]$attrition)){
+          data <- draw_observed_outcome(data = data, 
+                                        potential_outcomes = potential_outcomes[[i]]$attrition, 
+                                        condition_names= condition_names[[i]])
+          
+          data[data[,potential_outcomes[[i]]$attrition$outcome_variable_name]==0, potential_outcomes[[i]]$outcome_variable_name] <- NA
+          
+        }
         
       }
       

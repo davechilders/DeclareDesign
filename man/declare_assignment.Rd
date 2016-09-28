@@ -12,7 +12,8 @@ declare_assignment(condition_names = NULL, m = NULL, m_each = NULL,
   noncompliance = NULL, custom_transform_function = NULL,
   transform_options = NULL, custom_assignment_function = NULL,
   custom_blocking_function = NULL, custom_clustering_function = NULL,
-  existing_assignment_variable_name = NULL, description = NULL, ...)
+  existing_assignment_variable_name = NULL, description = NULL,
+  assignment = TRUE, ...)
 }
 \arguments{
 \item{condition_names}{A vector describing the conditions to which subjects can be assigned. Alternatively, condition_names can be obtained from a potential_outcomes object.}

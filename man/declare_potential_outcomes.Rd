@@ -9,7 +9,7 @@
   formula = NULL, outcome_variable_name = NULL, condition_names = NULL,
   inherit_condition_names = FALSE, sep = "_",
   assignment_variable_name = "Z", interference = NULL, attrition = NULL,
-  description = NULL, ...)
+  description = NULL, potential_outcomes = TRUE, ...)
 }
 \arguments{
 \item{potential_outcomes_function}{A function to draw potential outcomes as a function of a treatment assignment.}
