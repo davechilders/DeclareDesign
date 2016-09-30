@@ -668,15 +668,9 @@ test_that("section on 'Declaration and Diagnosis of a Bayesian Estimation Strate
   # Sample 100
   sampling <- declare_sampling(n = 100)
   
-  # POs with no treatment effect 
-  POs <- declare_potential_outcomes(
-    potential_outcomes = FALSE
-  )
-  
   # Estimand is true average underlying success probability
   estimand <- declare_estimand(
     estimand_text = "mean(prob_success)", 
-    potential_outcomes = POs,
     estimand_level = 'population')
   
   # One strategy uses flat priors
@@ -752,7 +746,6 @@ test_that("section on 'Declaration and Diagnosis of a Bayesian Estimation Strate
     population = population,
     sampling = sampling,
     estimator = list(flat_prior, info_prior),
-    potential_outcomes = POs,
     diagnosand = bayesian_diagnosands
   )
   
