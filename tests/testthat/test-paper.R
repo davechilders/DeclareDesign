@@ -592,7 +592,7 @@ test_that("section on 'Declaration and Diagnosis of a Bayesian Estimation Strate
     # and deterministic sample from posterior distribution
     grid_size = 1000) {
     # Get data
-    y <- data$y
+    y <- data$success
     # Get domain of unknown proportion parameter
     domain <- seq(from = .0000001,
                   to = .9999999,
@@ -670,9 +670,7 @@ test_that("section on 'Declaration and Diagnosis of a Bayesian Estimation Strate
   
   # POs with no treatment effect 
   POs <- declare_potential_outcomes(
-    formula = y ~ success + Z * 0,
-    condition_names = 0:1,
-    assignment_variable_name = "Z"
+    potential_outcomes = FALSE
   )
   
   # Estimand is true average underlying success probability
