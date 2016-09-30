@@ -9,6 +9,7 @@ context("Checking Code in Paper Works")
 
 test_that("section on 'Characterizing Research Designs in Code' works", {
   
+  
   my_population <- function(size) {
     data.frame(u = rnorm(size))
   }
