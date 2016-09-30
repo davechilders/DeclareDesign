@@ -866,9 +866,9 @@ test_that("section on 'Matching' works",{
   )
 })
   
-  
 # "Descriptive Design" ------------------------------
 
+rm(list = ls())  
 test_that("section on 'Descriptive Design' works", {
   # Declare population with a latent probability of voting at all, and 
   # some latent probability of supporting Hilary Clinton in 2016
@@ -885,8 +885,7 @@ test_that("section on 'Descriptive Design' works", {
   
   # The estimand is simply the amount of votes HRC will receive
   estimand <-
-    declare_estimand(estimand_text = "mean(HRC_supporter[voter==1])",
-                     potential_outcomes = potential_outcomes)
+    declare_estimand(estimand_text = "mean(HRC_supporter[voter==1])")
   # The estimator takes the sample mean and standard error thereof,
   # based on likely voters
   HRC_estimator <- function(data) {
