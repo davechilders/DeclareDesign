@@ -864,7 +864,7 @@ test_that("section on 'Matching' works",{
 rm(list = ls())  
 test_that("section on 'Descriptive Design' works", {
   # Declare population with a latent probability of voting at all, and 
-  # some latent probability of supporting Hilary Clinton in 2016
+  # some latent probability of supporting Hillary Clinton in 2016
   population <- declare_population(
     latent_voting = "rnorm(n_)",
     latent_HRC_support = ".1*latent_voting + rnorm(n_) - .1",
@@ -1076,7 +1076,7 @@ test_that("section on 'process tracing' works",{
 # Discovery section -------------------------------------------------------
 
 test_that("section on 'discovery' works",{
-  population <- declare_population(7
+  population <- declare_population(
                                    income = "runif(n_)",
                                    education = "income + 0.25*runif(n_)",
                                    noise = "runif(n_)",
@@ -1131,6 +1131,97 @@ test_that("section on 'discovery' works",{
     population = population, 
     estimator = list(estimator_right, estimator_wrong, estimator_split_sample))	
   
-  diagnose_design(design = design, population_draws = 1000)
+  diagnose_design(design = design, population_draws = 1000,population_replicates = F)
 })
+
+
+
+# Regression discontinuity ------------------------------------------------
+
+test_that('section on regression discontinuity works',{
+  # Assume all units have the same response functions but their baseline differs
+  # Declare control response function
+  control <- function(running) {
+    as.vector(
+      poly(x = running,
+           degree = 4,
+           raw = T) %*% c(1, 0, 0, 0))
+  }
+  # Declare treatment response function
+  treatment <- function(running) {
+    as.vector(
+      poly(x = running,
+           degree = 4,
+           raw = T) %*% c(.02, .02, .02, .2))
+  }
+  # Declare population
+  population <- declare_population(
+    # Declare how the running variable is distributed
+    running = declare_variable(type = "normal"),
+    # Declare how each unit's baseline outcomes are distributed
+    baseline = declare_variable(type = "normal", location_scale = c(0, .1)),
+    # Set number of units
+    size = 100
+  )
+  # Declare assignment as deterministic function of cutoff and running variable
+  assignment <- declare_assignment(
+    condition_names = c(0, 1),
+    assignment_variable_name = "Z",
+    custom_assignment_function = function(data)
+      1 * (data[,"running"] > 0)
+  )
+  # Declare sampling strategy using bandwidth
+  bw_sampling <- function(data) {
+    # Declare size of window around cutoff to sample units
+    as.numeric(data[,"running"] >= (0 - .2) &
+                 data[,"running"] <= 0 + .2)
+  }
+  # Declare sampling strategy
+  sampling <-
+    declare_sampling(custom_sampling_function = bw_sampling)
+  # Declare the potential outcomes function
+  
+  POs <- declare_potential_outcomes(
+    # Units have heterogeneous baselines but identical response functions
+    # Define both responses for a given part of the running variable
+    formula = y ~ Z * treatment(running) + (1 - Z) * control(running) + baseline,
+    assignment_variable_name = "Z",
+    condition_names = c(0, 1)
+  )
+  # Declare 'local' estimand (the average effect of treatment at the cutoff)
+  LATE <-
+    declare_estimand(
+      estimand_text = "treatment(0) - control(0)",
+      potential_outcomes = POs,
+      estimand_level = 'sample'
+    )
+  # Define linear estimator shooting at both 'local' and 'sample' ATEs
+  estimator <-
+    declare_estimator(
+      formula = y ~ running + Z + Z * running,
+      model = lm,
+      estimates = get_regression_coefficient,
+      coefficient_name = "Z",
+      estimand = LATE
+    )
+  # Declare design
+  design <- declare_design(
+    population = population,
+    sampling = sampling,
+    assignment = assignment,
+    potential_outcomes = POs,
+    estimator = estimator,
+    label = "RDD Design"
+  )
+  # Diagnose design
+  diagnose_design(
+    design = design,
+    population_draws = 100,
+    sample_draws = 1,
+    assignment_draws = 1,
+    bootstrap_diagnosands = F
+  )
+})
+
+
 
