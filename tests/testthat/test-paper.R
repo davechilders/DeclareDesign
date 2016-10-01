@@ -995,20 +995,16 @@ test_that("model-based inference example works",{
 test_that("section on 'process tracing' works",{
   population <- declare_population(
     # Equal probabilities of different types in the population
-    type = declare_variable(
-      type = "multinomial",
-      probabilities = rep(.25, 4),
-      outcome_categories = c("A", "B", "C", "D")
-    ),
+    type = "sample(x = c('A','B','C','D'),size = n_,replace = TRUE)",
     # Random process determines value of X
     X = declare_variable(
       type = "boolean",
       probabilities = .7
     ),
     # Clue is present with prob = .1 if it is a B type and X = TRUE
-    K = "ifelse(X == TRUE & type == 'B', sample(c(TRUE,FALSE),size = 1,prob = c(.1,.9)), FALSE)",
+    K = "ifelse(X & type == 'B', sample(c(TRUE,FALSE),size = 1,prob = c(.1,.9)), FALSE)",
     # # Y is a function of type and X
-    Y = "(type == 'A' & X == FALSE) | (type == 'B' & X == TRUE) | (type == 'D')",
+    Y = "(type == 'A' & !X) | (type == 'B' & X) | (type == 'D')",
     size   =  200
   )
   # Sample a single X = 1, Y = 1 case; done here by putting 0 weights on other cases
