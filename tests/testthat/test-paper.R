@@ -1021,12 +1021,7 @@ test_that("section on 'process tracing' works",{
   
   # I infer based on clue only
   my_estimates <- function(data) {
-    with(data,
-         c(
-           est = ifelse(K, 1, .5),
-           K_seen = K
-         ))
-  }
+    with(data,c(est = ifelse(K, 1, .5), K_seen = K))}
   smoking <- declare_estimator(
     estimates = my_estimates, 
     estimand = estimand)
