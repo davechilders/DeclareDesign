@@ -988,3 +988,87 @@ test_that("model-based inference example works",{
                   population_draws = 500, 
                   sample_draws = 1)
 })
+
+
+# Process tracing ---------------------------------------------------------
+
+test_that("section on 'process tracing' works",{
+  population <- declare_population(
+    # Equal probabilities of different types in the population
+    type = "sample(x = c('A','B','C','D'),size = n_,replace = TRUE)",
+    # Random process determines value of X
+    X = declare_variable(
+      type = "boolean",
+      probabilities = .7
+    ),
+    # Clue is present with prob = .1 if it is a B type and X = TRUE
+    K = "ifelse(X & type == 'B', sample(c(TRUE,FALSE),size = 1,prob = c(.1,.9)), FALSE)",
+    # # Y is a function of type and X
+    Y = "(type == 'A' & !X) | (type == 'B' & X) | (type == 'D')",
+    size   =  200
+  )
+  # Sample a single X = 1, Y = 1 case; done here by putting 0 weights on other cases
+  my_sampling <- function(data) {
+    X_and_Y_TRUE <- with(data,X & Y)
+    which_case <- sample(x = which(X_and_Y_TRUE),size = 1)
+    to_sample <- 1:nrow(data) %in% which_case
+    return(to_sample)
+  }
+  X1Y1_sampling <- declare_sampling(custom_sampling_function = my_sampling)
+  
+  estimand <- declare_estimand(estimand_text = "as.numeric(type == 'B')", 
+                               estimand_level = "sample") 
+  
+  # I infer based on clue only
+  my_estimates <- function(data) {
+    with(data,c(est = ifelse(K, 1, .5), K_seen = K))}
+  smoking <- declare_estimator(
+    estimates = my_estimates, 
+    estimand = estimand)
+  
+  pt_diagnosands <- list(
+    truth = declare_diagnosand(
+      diagnostic_statistic_text = "estimand",
+      summary_function = mean,
+      label = "Estimand"
+    ),
+    guess = declare_diagnosand(
+      diagnostic_statistic_text = "est",
+      summary_function = mean,
+      label = "Est based on SG"
+    ),
+    error = declare_diagnosand(
+      diagnostic_statistic_text = "est - estimand",
+      summary_function = mean,
+      label = "Bias"
+    ),
+    cond_error1 = declare_diagnosand(
+      diagnostic_statistic_text = "ifelse(K_seen, est - estimand, NA)",
+      summary_function = function(x) mean(x, na.rm = TRUE),
+      label = "Conditional bias when K seen"
+    ),
+    cond_error0 = declare_diagnosand(
+      diagnostic_statistic_text = "ifelse(!K_seen, est - estimand, NA)",
+      summary_function = function(x) mean(x, na.rm = TRUE),
+      label = "Conditional bias when K not seen"
+    )
+  )
+  # My design
+  onecase_design <- declare_design(
+    population = population,
+    sampling   = X1Y1_sampling,
+    estimator  = smoking,
+    diagnosand = pt_diagnosands
+  )
+  # Sample data
+  mock_data <- draw_data(design = onecase_design)
+  head(mock_data)
+  # Diagnose
+  diagnose_design(
+    design = onecase_design,
+    population_draws = 1000,
+    sample_draws = 1,
+    population_replicates = 1
+  )
+})
+
