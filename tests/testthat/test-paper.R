@@ -1072,3 +1072,65 @@ test_that("section on 'process tracing' works",{
   )
 })
 
+
+# Discovery section -------------------------------------------------------
+
+test_that("section on 'discovery' works",{
+  population <- declare_population(7
+                                   income = "runif(n_)",
+                                   education = "income + 0.25*runif(n_)",
+                                   noise = "runif(n_)",
+                                   Y = ".5 * income + .5 * education + noise",
+                                   size = 500
+  )
+  
+  estimand <- declare_estimand(
+    estimand_text = "0.5", 
+    estimand_level = "population")
+  
+  estimator_right <- declare_estimator(
+    model = lm, formula = Y ~ income + education,
+    estimates = get_regression_coefficient, coefficient_name = "income",
+    estimand = estimand,
+    estimator_label = "correct_model"
+  )
+  
+  estimator_wrong <- declare_estimator(
+    model = lm, formula = Y ~ income,
+    estimates = get_regression_coefficient, coefficient_name = "income",
+    estimand = estimand,
+    estimator_label = "wrong_model"
+  )
+  
+  estimator_split_sample <- declare_estimator(
+    model = function(data){
+      split_sample <- sample(0:1, nrow(data), replace = T)
+      train <- data[split_sample == TRUE, ]
+      test <- data[split_sample == FALSE, ]
+      
+      exploration1 <- lm(Y ~ income, data = train)
+      exploration2 <- lm(Y ~ income + education, data = train)
+      exploration3 <- lm(Y ~ income + education + income * education, data = train)
+      
+      explorations <- list(exploration1, exploration2, exploration3)
+      
+      explorations_compare <- sapply(explorations, function(reg) AIC(reg))
+      
+      exploration_best <- explorations[[which.min(explorations_compare)[1]]]
+      
+      exploration_test <- lm(formula(exploration_best), data = test)
+      
+      return(exploration_test)
+    }, estimates = get_regression_coefficient,
+    coefficient_name = "income",
+    estimand = estimand,
+    estimator_label = "split sample"
+  )
+  
+  design <- declare_design(
+    population = population, 
+    estimator = list(estimator_right, estimator_wrong, estimator_split_sample))	
+  
+  diagnose_design(design = design, population_draws = 1000)
+})
+
