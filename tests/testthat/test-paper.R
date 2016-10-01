@@ -1075,7 +1075,7 @@ test_that("section on 'process tracing' works",{
   # Diagnose
   diagnose_design(
     design = onecase_design,
-    population_draws = 4000,
+    population_draws = 1000,
     sample_draws = 1,
     population_replicates = 1
   )
