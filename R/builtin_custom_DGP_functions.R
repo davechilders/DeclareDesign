@@ -205,6 +205,8 @@ declare_variable <- function(
       outcome_categories <- c("F","M")
     }
     
+
+    
     if(!is.null(outcome_categories)){
       return_expr <- paste0(
         "temp_var <- as.factor(",
@@ -213,6 +215,10 @@ declare_variable <- function(
         paste(outcome_categories,collapse = "','"),
         "');temp_var"
       )
+    }
+    
+    if(type == "boolean"){
+      return_expr <- paste0(return_expr," == 1")
     }
     
   }
@@ -281,7 +287,9 @@ environment(declare_variable) <- list2env(
       # Types
       "binary",
       # Custom variables
-      "gender"
+      "gender",
+      # Boolean 
+      "boolean"
     ),
     rate = c(
       # Distributions
