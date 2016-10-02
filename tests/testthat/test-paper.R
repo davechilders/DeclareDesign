@@ -151,11 +151,9 @@ test_that(
     })
     # Set the diagonal of the distance matrix to 0
     diag(distmat) <- 0
-    # Set up the size of the distance effect, which correlates potential
-    # outcomes with spatial position, the size of the buffer, 
     # and the range of the size of the spillover effect.
     dist_effect <- 2
-    buffer <- 0
+    buffer <- 4
     spillover <- 0
     # Generate all possible pairs of points
     pairs <- t(with(spatial_data, combn(id, 2)))
@@ -187,7 +185,7 @@ test_that(
                      distmat = distmat),
       super_population = TRUE
     )
-    
+    # We sample two units and assign one of them in the same step
     sample_and_assign <- function(data) {
       sample_probs <- data$buffer_prob
       ids <- 1:length(sample_probs)
@@ -203,16 +201,15 @@ test_that(
       treated <- ids %in% to_treat
       return(sampled + treated)
     }
-    
-    
     assignment <- declare_assignment(condition_names = c(0, 1, 2),
                                      custom_assignment_function = sample_and_assign)
-    
+    # The spillover affects any units that fall within the buffer
     interference <- declare_potential_outcomes(
       formula = E ~ (distmat %*% I(Z == 2) < 4) * I(Z != 2),
       condition_names = c(0, 1, 2)
     )
-    
+    # The potential outcomes are a combination of the treatment effect,
+    # the spillover, spatial autocorrelation and background noise
     PO_formula <-
       as.formula(paste0(
         "Y ~ 1*I(Z==2) + E_Z_2 *",
@@ -220,51 +217,42 @@ test_that(
         " + noise + distance *",
         dist_effect
       ))
-    
     potential_outcomes <- declare_potential_outcomes(
       formula = PO_formula,
       condition_names = c(0, 1, 2),
       assignment_variable_name = "Z"
     )
-    
+    # We turn off sampling as it is conducted during assignment
     sampling <- declare_sampling(sampling = FALSE)
-    
+    # The estimand is the direct effect of the treatment 
     estimand <- declare_estimand(
       estimand_text = "1",
       potential_outcomes = potential_outcomes,
       fixed = TRUE,
       label = "fixed_estimand"
     )
-    
+    # We estimate using an IPW regression 
     IPW_est <- function(data) {
       probs <- data$buffer_prob
       treated <- data$Z == 2
       sampled <- data$Z > 0
       weights <- 1 / probs
-      
       lm_fit <- lm(
         formula = Y ~ (Z == 2),
         data = data,
         subset = Z > 0,
         weights = weights
       )
-      
       lm_fit$df.residual <- 1
-      
       return(lm_fit)
-      
     }
-    
-    
     estimator <- declare_estimator(
       model = IPW_est,
       estimates = get_regression_coefficient,
       coefficient_name = "Z == 2TRUE",
       estimand = estimand
     )
-    
-    
-    
+    # Declare the design
     design <- declare_design(
       population = population,
       sampling = sampling,
@@ -273,184 +261,7 @@ test_that(
       potential_outcomes = list(interference, potential_outcomes),
       label = "Spillover Buffer Design"
     )
-    
-    expect_warning(
-      diagnose_design(
-        design = design,
-        population_draws = 10,
-        sample_draws = 1,
-        assignment_draws = 1,
-        bootstrap_diagnosands = F
-      )
-    )
-    
-  }
-)
-
-
-
-# Illustration of Analysis Decisions: Gains from Covariate Control --------
-
-test_that("section 'Illustration of Analysis Decisions: Gains from Covariate Control' works",
-          {
-            N <- 24
-            n <- 24
-            m <- floor(n / 2)
-            sdev <- 1
-            b <- 1
-            f <- 0
-            g <- 0
-            
-            if (f < 0)
-              stop("f non negative please for this illustration")
-            if (f + g > 1)
-              stop("f + g < 1 please")
-            
-            
-            my_population    <- declare_population(
-              e    = declare_variable(type = "normal", location_scale = c(0, sdev)),
-              XT   = declare_variable(type = "normal", location_scale = c(0, sdev)),
-              XM   = "sign(XT)*XT^2  - mean(sign(XT)*XT^2)",
-              # Misspecification
-              size = N,
-              super_population = TRUE
-            )
-            
-            my_potential_outcomes <-
-              declare_potential_outcomes(formula = as.formula(
-                paste0(
-                  "Y ~ Z*",
-                  b,
-                  "+Z*XT*",
-                  f,
-                  "+XT*",
-                  g,
-                  "+Z*e*",
-                  (1 - (f + g) ^ 2) ^ .5,
-                  "+(1-Z)*e*",
-                  (1 - g ^ 2) ^ .5
-                )
-              ),
-              condition_names = c(0, 1))
-            
-            if (n == N)
-              my_sampling <- declare_sampling(sampling = FALSE)
-            if (n != N)
-              my_sampling <- declare_sampling(n = n)
-            
-            my_estimand <-
-              declare_estimand(estimand_text = "mean(Y_Z_1 - Y_Z_0)",
-                               potential_outcomes = my_potential_outcomes)
-            
-            my_estimand0 <-
-              declare_estimand(estimand_text = "mean(Y_Z_1 - Y_Z_1)",
-                               potential_outcomes = my_potential_outcomes)
-            
-            my_assignment   <- declare_assignment(m = m,
-                                                  potential_outcomes = my_potential_outcomes)
-            
-            M1 <- declare_estimator(
-              formula           = Y ~ Z,
-              model             = lm,
-              estimates         = get_regression_coefficient,
-              coefficient_name = "Z",
-              estimand          = my_estimand,
-              labels            = "No Controls"
-            )
-            
-            M2 <- declare_estimator(
-              formula           = Y ~ Z + XM,
-              model             = lm,
-              estimates         = get_regression_coefficient,
-              coefficient_name = "Z",
-              estimand          = my_estimand,
-              labels            = "Controls"
-            )
-            
-            M3 <- declare_estimator(
-              formula           = Y ~ Z + XM + Z:XM,
-              model             = lm,
-              estimates         = get_regression_coefficient,
-              coefficient_name = "Z",
-              estimand          = my_estimand,
-              labels            = "Controls and Interaction"
-            )
-            
-            B <- declare_estimator(
-              formula           = XM ~ Z,
-              model             = lm,
-              estimates         = get_regression_coefficient,
-              coefficient_name = "Z",
-              estimand          = my_estimand0,
-              labels            = "Balance check"
-            )
-            
-            my_design <- declare_design(
-              population         = my_population,
-              potential_outcomes = my_potential_outcomes,
-              sampling           = my_sampling,
-              assignment         = my_assignment,
-              estimator          = list(M1, M2, M3, B)
-            )
-            
-            diagnose_design(
-              design = my_design,
-              population_draws = 10,
-              sample_draws = 1,
-              assignment_draws = 1,
-              bootstrap_diagnosands = F
-            )
-            
-            
-          })
-
-
-# Illustration of Assignment Decisions: Assigning Multiple Treatme --------
-
-test_that("appendix for 'Assigning Multiple Treatments' works", {
-  # Factorial design with no interaction estimand
-  
-  interaction_coefficient <- 0
-  n <- 500
-  
-  population <-
-    declare_population(noise = "rnorm(n_)", size = 10000)
-  sampling <- declare_sampling(n = n)
-  
-  potential_outcomes <-
-    declare_potential_outcomes(
-      formula = Y ~ .5 * Z1 + .5 * Z2 + interaction_coefficient * Z1 * Z2 + noise,
-      condition_names = list(Z1 = c(0, 1),
-                             Z2 = c(0, 1)),
-      assignment_variable_name = c("Z1", "Z2"),
-      interaction_coefficient = interaction_coefficient
-    )
-  
-  assignment_1 <-
-    declare_assignment(condition_names = c(0, 1),
-                       assignment_variable_name  = "Z1")
-  
-  assignment_2 <-
-    declare_assignment(condition_names = c(0, 1),
-                       assignment_variable_name  = "Z2")
-  
-  estimator_main <- declare_estimator(
-    Y ~ Z1 + Z2,
-    model = lm,
-    estimates = get_regression_coefficient_robust,
-    coefficient_name = "Z1"
-  )
-  
-  design <- declare_design(
-    population = population,
-    sampling = sampling,
-    assignment = list(assignment_1, assignment_2),
-    estimator = estimator_main,
-    potential_outcomes = potential_outcomes,
-    diagnosand = power
-  )
-  
-  expect_error(
+    # Diagnose the design
     diagnose_design(
       design = design,
       population_draws = 10,
@@ -458,17 +269,129 @@ test_that("appendix for 'Assigning Multiple Treatments' works", {
       assignment_draws = 1,
       bootstrap_diagnosands = F
     )
+  }
+)
+
+
+
+# Illustration of Analysis Decisions: Gains from Covariate Control --------
+
+test_that("section 'Illustration of Analysis Decisions: Gains from Covariate Control' works",{
+  # Set up the basic parameters for the analysis
+  N <- 24
+  n <- 24
+  m <- floor(n / 2)
+  sdev <- 1
+  b <- 1
+  f <- 0
+  g <- 0
+  # Declare the population
+  my_population <- declare_population(
+    e = declare_variable(type = "normal", location_scale = c(0, sdev)),
+    XT = declare_variable(type = "normal", location_scale = c(0, sdev)),
+    XM = "sign(XT)*XT^2  - mean(sign(XT)*XT^2)",
+    # Misspecification
+    size = N,
+    super_population = TRUE
   )
-  
-  # Factorial design with Interaction
-  
+  # Potential outcomes are a function of direct effect
+  # and heterogeneity by covariate interaction
+  my_potential_outcomes <-
+    declare_potential_outcomes(formula = as.formula(
+      paste0(
+        "Y ~ Z*",
+        b,
+        "+Z*XT*",
+        f,
+        "+XT*",
+        g,
+        "+Z*e*",
+        (1 - (f + g) ^ 2) ^ .5,
+        "+(1-Z)*e*",
+        (1 - g ^ 2) ^ .5
+      )
+    ),
+    condition_names = c(0, 1))
+  # Based on parameters, choose an appropriate sampling strategy
+  if (n == N)
+    my_sampling <- declare_sampling(sampling = FALSE)
+  if (n != N)
+    my_sampling <- declare_sampling(n = n)
+  # The estimand is the ATE
+  my_estimand <-
+    declare_estimand(estimand_text = "mean(Y_Z_1 - Y_Z_0)",
+                     potential_outcomes = my_potential_outcomes)
+  # A null estimand
+  my_estimand0 <-
+    declare_estimand(estimand_text = "mean(Y_Z_1 - Y_Z_1)",
+                     potential_outcomes = my_potential_outcomes)
+  # Assign m units to treatment
+  my_assignment   <- declare_assignment(m = m,
+                                        potential_outcomes = my_potential_outcomes)
+  # Declare the different kinds of estimators
+  M1 <- declare_estimator(
+    formula           = Y ~ Z,
+    model             = lm,
+    estimates         = get_regression_coefficient,
+    coefficient_name = "Z",
+    estimand          = my_estimand,
+    labels            = "No Controls"
+  )
+  M2 <- declare_estimator(
+    formula           = Y ~ Z + XM,
+    model             = lm,
+    estimates         = get_regression_coefficient,
+    coefficient_name = "Z",
+    estimand          = my_estimand,
+    labels            = "Controls"
+  )
+  M3 <- declare_estimator(
+    formula           = Y ~ Z + XM + Z:XM,
+    model             = lm,
+    estimates         = get_regression_coefficient,
+    coefficient_name = "Z",
+    estimand          = my_estimand,
+    labels            = "Controls and Interaction"
+  )
+  B <- declare_estimator(
+    formula           = XM ~ Z,
+    model             = lm,
+    estimates         = get_regression_coefficient,
+    coefficient_name = "Z",
+    estimand          = my_estimand0,
+    labels            = "Balance check"
+  )
+  # Declare the design
+  my_design <- declare_design(
+    population         = my_population,
+    potential_outcomes = my_potential_outcomes,
+    sampling           = my_sampling,
+    assignment         = my_assignment,
+    estimator          = list(M1, M2, M3, B)
+  )
+  # Diagnose the design
+  diagnose_design(
+    design = my_design,
+    population_draws = 10,
+    sample_draws = 1,
+    assignment_draws = 1,
+    bootstrap_diagnosands = F
+  )
+})
+
+
+# Illustration of Assignment Decisions: Assigning Multiple Treatme --------
+
+test_that("appendix for 'Assigning Multiple Treatments' works", {
+  # Factorial design with interaction
+  # True interaction set to 0
   interaction_coefficient <- 0
   n <- 500
-  
-  population <-
-    declare_population(noise = "rnorm(n_)", size = 10000)
+  # A simple population of 10K units with background noise
+  population <- declare_population(noise = "rnorm(n_)", size = 10000)
+  # Sample n at random
   sampling <- declare_sampling(n = n)
-  
+  # Potential outcomes feature direct and interaction effects
   potential_outcomes <-
     declare_potential_outcomes(
       formula = Y ~ .5 * Z1 + .5 * Z2 + interaction_coefficient * Z1 * Z2 + noise,
@@ -477,16 +400,14 @@ test_that("appendix for 'Assigning Multiple Treatments' works", {
       assignment_variable_name = c("Z1", "Z2"),
       interaction_coefficient = interaction_coefficient
     )
-  
+  # Assign treatment one and two using simple random assignment
   assignment_1 <-
     declare_assignment(condition_names = c(0, 1),
                        assignment_variable_name  = "Z1")
-  
   assignment_2 <-
     declare_assignment(condition_names = c(0, 1),
                        assignment_variable_name  = "Z2")
-  
-  
+  # Declare the interaction estimand
   estimand_int <- declare_estimand(
     estimand_text =
       "mean(Y_Z1_1_Z2_1 - Y_Z1_0_Z2_1) -
@@ -494,7 +415,7 @@ test_that("appendix for 'Assigning Multiple Treatments' works", {
     potential_outcomes = potential_outcomes,
     label = "interaction_effect"
   )
-  
+  # An estimator of the interaction 
   estimator_int <- declare_estimator(
     Y ~ Z1 * Z2,
     model = lm,
@@ -502,7 +423,7 @@ test_that("appendix for 'Assigning Multiple Treatments' works", {
     coefficient_name = "Z1:Z2",
     estimand = estimand_int
   )
-  
+  # Declare the design
   design <- declare_design(
     population = population,
     sampling = sampling,
@@ -510,7 +431,7 @@ test_that("appendix for 'Assigning Multiple Treatments' works", {
     estimator = estimator_int,
     potential_outcomes = potential_outcomes
   )
-  
+  # Diagnose the design
   diagnose_design(
     design = design,
     population_draws = 10,
@@ -518,16 +439,15 @@ test_that("appendix for 'Assigning Multiple Treatments' works", {
     assignment_draws = 1,
     bootstrap_diagnosands = F
   )
-  
   # Three arm design
-  
+  # True interaction set to 0
   interaction_coefficient <- 0
   n <- 500
-  
-  population <-
-    declare_population(noise = "rnorm(n_)", size = 10000)
+  # A simple population of 10K units with background noise
+  population <- declare_population(noise = "rnorm(n_)", size = 10000)
+  # Sample n at random
   sampling <- declare_sampling(n = n)
-  
+  # Potential outcomes feature direct and interaction effects
   potential_outcomes <-
     declare_potential_outcomes(
       formula = Y ~ 0.5 * Z1 + 0.5 * Z2 + interaction_coefficient * Z1 * Z2 + noise,
@@ -536,19 +456,19 @@ test_that("appendix for 'Assigning Multiple Treatments' works", {
       assignment_variable_name = c("Z1", "Z2"),
       interaction_coefficient = interaction_coefficient
     )
-  
+  # Assign treatment one and two using complete random assignment
   assignment_3 <-
     declare_assignment(condition_names = c(0, 1, 2),
                        transform_options = list(Z1 = c(1),
                                                 Z2 = c(2)))
-  
+  # Declare the direct effect estimand
   estimand <- declare_estimand(
     estimand_text =
       "mean(Y_Z1_1_Z2_0 - Y_Z1_0_Z2_0)",
     potential_outcomes = potential_outcomes,
     label = "main_effect"
   )
-  
+  # An estimator of the direct effect of Z1
   estimator <- declare_estimator(
     Y ~ Z1 + Z2,
     model = lm,
@@ -556,7 +476,7 @@ test_that("appendix for 'Assigning Multiple Treatments' works", {
     coefficient_name = "Z1",
     estimand = estimand
   )
-  
+  # Declare the design
   design <- declare_design(
     population = population,
     sampling = sampling,
@@ -564,7 +484,7 @@ test_that("appendix for 'Assigning Multiple Treatments' works", {
     estimator = estimator,
     potential_outcomes = potential_outcomes
   )
-  
+  # Diagnose the design
   diagnose_design(
     design = design,
     population_draws = 10,
@@ -572,11 +492,10 @@ test_that("appendix for 'Assigning Multiple Treatments' works", {
     assignment_draws = 1,
     bootstrap_diagnosands = F
   )
-  
 })
 
 test_that("section on 'Declaration and Diagnosis of a Bayesian Estimation Strategy' works",{
-  # Simple DGP
+  # Simple probit DGP that is mis-specified as beta binomial in Bayesian model
   population <- declare_population(
     # Latent space
     noise = "rnorm(n_,-.9,.5)",
@@ -586,16 +505,14 @@ test_that("section on 'Declaration and Diagnosis of a Bayesian Estimation Strate
     success = "rbinom(n_,1,prob_success)",
     size = c(10 ^ 5)
   )
-  
-  # Sample 100
+  # Sample 100 units
   sampling <- declare_sampling(n = 100)
-  
-  # Estimand is true average underlying success probability
+  # Estimand is true average underlying success probability in the population
   estimand <- declare_estimand(estimand_text = "mean(prob_success)",
                                estimand_level = 'population')
-  
   # Model of posterior distribution
-  compute_posterior <- function(# takes data containing y (vector of successes)
+  compute_posterior <- function(
+    # takes data containing y (vector of successes)
     data,
     # beta priors
     alpha_prior = 1,
@@ -627,7 +544,7 @@ test_that("section on 'Declaration and Diagnosis of a Bayesian Estimation Strate
       domain = domain
     ))
   }
-  # Estimates function for summarizing posterior inferences
+  # Estimates function for summarizing posterior distribution
   get_posterior_estimates <- function(model) {
     posterior_prob <- model$posterior_prob
     prior_prob <- model$prior_prob
@@ -636,7 +553,7 @@ test_that("section on 'Declaration and Diagnosis of a Bayesian Estimation Strate
     max_apost <- domain[which.max(posterior_prob)]
     # Get posterior mean
     mean_post <- sum((domain * posterior_prob)/sum(posterior_prob))
-    # Re-normalized prior mean
+    # Get prior mean
     mean_prior <- sum((domain * prior_prob) / sum(prior_prob))
     # Get prior/posterior variance ratios
     var_post <- sum(posterior_prob/sum(posterior_prob) * (domain - mean_post) ^ 2)
@@ -646,14 +563,11 @@ test_that("section on 'Declaration and Diagnosis of a Bayesian Estimation Strate
     # Get variance ratio
     var_rat <- var_post / var_prior
     # Get shift in means
-    mean_shift <-
-      mean_post - mean_prior
+    mean_shift <- mean_post - mean_prior
     # Get 90% credibility interval
-    cred_low <-
-      domain[which(round(cumsum(posterior_prob), 2) == .1)[1]]
+    cred_low <- domain[which(round(cumsum(posterior_prob), 2) == .1)[1]]
     upper_pos <- which(round(cumsum(posterior_prob), 2) == .9)
     cred_upp <- domain[upper_pos[length(upper_pos)]]
-    
     return(
       c(
         max_apost = max_apost,
@@ -668,8 +582,7 @@ test_that("section on 'Declaration and Diagnosis of a Bayesian Estimation Strate
       )
     )
   }
-  
-  
+  # Declare to estimation strategies
   # One strategy uses flat priors
   flat_prior <- declare_estimator(
     model = compute_posterior,
@@ -681,8 +594,7 @@ test_that("section on 'Declaration and Diagnosis of a Bayesian Estimation Strate
     estimates = get_posterior_estimates,
     estimand = estimand
   )
-  
-  # The other uses weakly informative priors
+  # The other uses weakly informative priors centered at .5
   info_prior <- declare_estimator(
     model = compute_posterior,
     model_options = list(
@@ -693,8 +605,7 @@ test_that("section on 'Declaration and Diagnosis of a Bayesian Estimation Strate
     estimates = get_posterior_estimates,
     estimand = estimand
   )
-  
-  # A range of diagnosands that are specific to Bayes
+  # A range of diagnosands that are specific to Bayesian estimators
   bayesian_diagnosands <- list(
     mean_var_red = declare_diagnosand(
       diagnostic_statistic_text = "var_red",
@@ -737,20 +648,18 @@ test_that("section on 'Declaration and Diagnosis of a Bayesian Estimation Strate
       label = "True Population Proportion"
     )
   )
-  
-  # Design declaration
+  # Declare the design
   design <- declare_design(
     population = population,
     sampling = sampling,
     estimator = list(flat_prior, info_prior),
     diagnosand = bayesian_diagnosands
   )
-  
-  # Diagnosis
-  diagnosis <- diagnose_design(
+  # Diagnose the design
+  diagnose_design(
     design = design,
-    population_draws = 1,
-    sample_draws = 1000,
+    population_draws = 10,
+    sample_draws = 1,
     assignment_draws = 1,
     bootstrap_diagnosands = F
   )
@@ -766,7 +675,6 @@ test_that("section on 'Matching' works", {
     X3 = "rnorm(n_)",
     size = 5000
   )
-  
   # The design samples 1000 units at random
   sampling <- declare_sampling(n = 1000)
   # The potential outcomes of each unit are a linea
@@ -851,16 +759,15 @@ test_that("section on 'Matching' works", {
   # Diagnose design
   diagnose_design(
     design = design,
-    population_draws = 1,
+    population_draws = 10,
     sample_draws = 1,
-    assignment_draws = 1000,
-    bootstrap_diagnosands = FALSE
+    assignment_draws = 1,
+    bootstrap_diagnosands = F
   )
 })
 
 # "Descriptive Design" ------------------------------
 
-rm(list = ls())
 test_that("section on 'Descriptive Design' works", {
   # Declare population with a latent probability of voting at all, and
   # some latent probability of supporting Hillary Clinton in 2016
@@ -874,7 +781,6 @@ test_that("section on 'Descriptive Design' works", {
   )
   # Sample 1000 people at random
   sampling <- declare_sampling(n = 1000)
-  
   # The estimand is simply the amount of votes HRC will receive
   estimand <-
     declare_estimand(estimand_text = "mean(HRC_supporter[voter==1])")
@@ -928,22 +834,21 @@ test_that("section on 'Descriptive Design' works", {
   )
   # Diagnose the design
   diagnose_design(
-    design,
-    population_draws = 1000,
-    population_replicates = 1,
+    design = design,
+    population_draws = 10,
     sample_draws = 1,
     assignment_draws = 1,
-    bootstrap_diagnosands = FALSE
+    bootstrap_diagnosands = F
   )
 })
 
 test_that("model-based inference example works", {
-  # U
-  U <- declare_population(u      =  declare_variable(),
-                          size   =  10)
+  # Declare a DGP with 10 units and some background noise
+  U <- declare_population(u = declare_variable(),
+                          size = 10)
   
   # Y is a concave function of treatment
-  Y    <- declare_potential_outcomes(
+  Y <- declare_potential_outcomes(
     condition_names = list(Z = 1:3),
     potential_outcomes_function = function(data) {
       with(data, 0 * (Z == 1) + 3 * (Z == 2) + 4 * (Z == 3) + u)
@@ -951,29 +856,23 @@ test_that("model-based inference example works", {
     outcome_variable_name = "Y",
     assignment_variable_name = "Z"
   )
-  
-  
   # Model based estimand: generated as coeficient from model on superdata
-  f_tau    <-
-    function(data)  {
-      YY = with(data, c(Y_Z_1, Y_Z_2, Y_Z_3))
-      XX = rep(1:3, each = nrow(data))
-      coef(lm(YY ~ XX))[2]
-    }
-  
-  tau       <-
-    declare_estimand(estimand_function = f_tau,
+  f_tau <- function(data)  {
+    YY = with(data, c(Y_Z_1, Y_Z_2, Y_Z_3))
+    XX = rep(1:3, each = nrow(data))
+    coef(lm(YY ~ XX))[2]
+  }
+  tau <- declare_estimand(estimand_function = f_tau,
                      potential_outcomes = Y)
-  
-  # Assignment
+  # Declare assignment with equal probabilities
   p_Z  <-
     declare_assignment(condition_names = 1:3,
                        probability_each = c(1, 1, 1) / 3)
+  # And one assignment with unequal probabilities
   p_Z  <-
     declare_assignment(condition_names = 1:3,
                        probability_each = c(.4, .4, .2))
-  
-  # Estimates
+  # The estimator is a simple linear regression model
   b <- declare_estimator(
     formula           = Y ~ Z,
     model             = lm,
@@ -982,10 +881,8 @@ test_that("model-based inference example works", {
     estimand          = tau,
     labels            = "OLS"
   )
-  
-  
   # Declare design
-  model_design <- declare_design(
+  design <- declare_design(
     population = U,
     sampling = declare_sampling(sampling = FALSE),
     assignment = p_Z,
@@ -993,12 +890,13 @@ test_that("model-based inference example works", {
     potential_outcomes = Y,
     label = "simple_panel"
   )
-  
   # Diagnose
   diagnose_design(
-    design = model_design,
-    population_draws = 500,
-    sample_draws = 1
+    design = design,
+    population_draws = 10,
+    sample_draws = 1,
+    assignment_draws = 1,
+    bootstrap_diagnosands = F
   )
 })
 
@@ -1006,15 +904,34 @@ test_that("model-based inference example works", {
 # Process tracing ---------------------------------------------------------
 
 test_that("section on 'process tracing' works", {
+  # We have a single-case analysis strategy in which we try to
+  # make an inference about how likely it is that X caused Y.
+  # There are four types of causal scenarios.
+  # For A types, X has an adverse causal relationship to Y,
+  # so that Y = FALSE when X = TRUE and Y = TRUE when X = FALSE.
+  # For B types, X causes Y, such that when
+  # X = TRUE, Y = TRUE and when X = FALSE, Y = FALSE.
+  # C and D types are chronic and destined, respectively: Y is always FALSE
+  # for C types and Y is always TRUE for D types, irrespective of the value of X.
+  # We choose only one case in which X = TRUE and Y = TRUE and try to determine the
+  # probability that X caused Y given that the case might be a B type or a D type.
+  
+  # We conduct "naive process tracing" in which inferences are made based on
+  # a smoking gun clue, K, seen with 10% probability for B types and not otherwise.
+  # Inference updates if clue is seen. However, if the clue is not seen inferences
+  # are not updated: the strategy is not fully consistent with Bayes rule.
+  # The prior is 0.5 on a B type rather than a D type.
+  # In those cases in which K is not seen the correct inference is
+  # Pr(type = B | !K) = .9*.5/(.9*.5 + 1*.5) = .474
+  # An inference of .5 means a bias of 0.026.
   population <- declare_population(
     # Equal probabilities of different types in the population
     type = "sample(x = c('A','B','C','D'),size = n_,replace = TRUE)",
     # Random process determines value of X
-    X = declare_variable(type = "boolean",
-                         probabilities = .7),
-    # Clue is present with prob = .1 if it is a B type and X = TRUE
+    X = declare_variable(type = "boolean", probabilities = .7),
+    # Clue is present with prob = .1 iff case is a B type and X = TRUE
     K = "ifelse(X & type == 'B', sample(c(TRUE,FALSE),size = 1,prob = c(.1,.9)), FALSE)",
-    # # Y is a function of type and X
+    # Y is a function of type and X
     Y = "(type == 'A' & !X) | (type == 'B' & X) | (type == 'D')",
     size   =  200
   )
@@ -1027,40 +944,46 @@ test_that("section on 'process tracing' works", {
   }
   X1Y1_sampling <-
     declare_sampling(custom_sampling_function = my_sampling)
-  
+  # The estimand is defined at the level of the sample (i.e. the single case):
+  # we want to know: what is the probability that this is a B and not a D case?
   estimand <-
     declare_estimand(estimand_text = "as.numeric(type == 'B')",
                      estimand_level = "sample")
-  
-  # I infer based on clue only
+  # Infer that the case is a type B if K is observed and remain with prior
+  # beliefs if K is not observed (inconsistent with Bayes' rule)
   my_estimates <- function(data) {
     with(data, c(est = ifelse(K, 1, .5), K_seen = K))
   }
   smoking <- declare_estimator(estimates = my_estimates,
                                estimand = estimand)
-  
+  # Process-tracing diagnosands:
   pt_diagnosands <- list(
+  # - The average probability that I get a B case
     truth = declare_diagnosand(
       diagnostic_statistic_text = "estimand",
       summary_function = mean,
       label = "Estimand"
     ),
+  # - The average value of my inference   
     guess = declare_diagnosand(
       diagnostic_statistic_text = "est",
       summary_function = mean,
       label = "Est based on SG"
     ),
+  # - The probability of getting the answer wrong
     error = declare_diagnosand(
       diagnostic_statistic_text = "est - estimand",
       summary_function = mean,
       label = "Bias"
     ),
+  # - Given that I see the clue, the probability of being wrong
     cond_error1 = declare_diagnosand(
       diagnostic_statistic_text = "ifelse(K_seen, est - estimand, NA)",
       summary_function = function(x)
         mean(x, na.rm = TRUE),
       label = "Conditional bias when K seen"
     ),
+  # - Given that I don't observe the clue, the probability of being wrong
     cond_error0 = declare_diagnosand(
       diagnostic_statistic_text = "ifelse(!K_seen, est - estimand, NA)",
       summary_function = function(x)
@@ -1068,22 +991,23 @@ test_that("section on 'process tracing' works", {
       label = "Conditional bias when K not seen"
     )
   )
-  # My design
-  onecase_design <- declare_design(
+  # Declare the design
+  design <- declare_design(
     population = population,
     sampling   = X1Y1_sampling,
     estimator  = smoking,
     diagnosand = pt_diagnosands
   )
-  # Sample data
-  mock_data <- draw_data(design = onecase_design)
+  # Look at the data
+  mock_data <- draw_data(design = design)
   head(mock_data)
-  # Diagnose
+  # Diagnose the design
   diagnose_design(
-    design = onecase_design,
-    population_draws = 1000,
+    design = design,
+    population_draws = 10,
     sample_draws = 1,
-    population_replicates = 1
+    assignment_draws = 1,
+    bootstrap_diagnosands = F
   )
 })
 
@@ -1091,6 +1015,7 @@ test_that("section on 'process tracing' works", {
 # Discovery section -------------------------------------------------------
 
 test_that("section on 'discovery' works", {
+  # Declare a simple population with background covariates 
   population <- declare_population(
     income = "runif(n_)",
     education = "income + 0.25*runif(n_)",
@@ -1098,10 +1023,10 @@ test_that("section on 'discovery' works", {
     Y = ".5 * income + .5 * education + noise",
     size = 500
   )
-  
+  # The estimand is the true effect of income 
   estimand <- declare_estimand(estimand_text = "0.5",
                                estimand_level = "population")
-  
+  # The right estimator accounts for education
   estimator_right <- declare_estimator(
     model = lm,
     formula = Y ~ income + education,
@@ -1110,7 +1035,7 @@ test_that("section on 'discovery' works", {
     estimand = estimand,
     estimator_label = "correct_model"
   )
-  
+  # The wrong estimator does not account for education
   estimator_wrong <- declare_estimator(
     model = lm,
     formula = Y ~ income,
@@ -1119,29 +1044,28 @@ test_that("section on 'discovery' works", {
     estimand = estimand,
     estimator_label = "wrong_model"
   )
-  
+  # Declare the split-sample estimator 
   estimator_split_sample <- declare_estimator(
     model = function(data) {
+      # The data is split into training and testing sets
       split_sample <- sample(0:1, nrow(data), replace = T)
       train <- data[split_sample == TRUE,]
       test <- data[split_sample == FALSE,]
-      
+      # Fit three nested models on the training data
       exploration1 <- lm(Y ~ income, data = train)
       exploration2 <- lm(Y ~ income + education, data = train)
       exploration3 <-
         lm(Y ~ income + education + income * education, data = train)
-      
       explorations <- list(exploration1, exploration2, exploration3)
-      
+      # Then compare the Akaike Information Criterion from each
       explorations_compare <-
         sapply(explorations, function(reg)
           AIC(reg))
-      
+      # Choose the model with the best fit
       exploration_best <-
         explorations[[which.min(explorations_compare)[1]]]
-      
+      # And fit it to the training data
       exploration_test <- lm(formula(exploration_best), data = test)
-      
       return(exploration_test)
     },
     estimates = get_regression_coefficient,
@@ -1149,20 +1073,21 @@ test_that("section on 'discovery' works", {
     estimand = estimand,
     estimator_label = "split sample"
   )
-  
+  # Compare using the full sample with the right and wrong estimators to 
+  # the split sample approach
   design <- declare_design(
     population = population,
     estimator = list(estimator_right, estimator_wrong, estimator_split_sample)
   )
-  
+  # Diagnose the design
   diagnose_design(
     design = design,
-    population_draws = 1000,
-    population_replicates = F
+    population_draws = 10,
+    sample_draws = 1,
+    assignment_draws = 1,
+    bootstrap_diagnosands = F
   )
 })
-
-
 
 # Regression discontinuity ------------------------------------------------
 
@@ -1248,7 +1173,7 @@ test_that('section on regression discontinuity works', {
   # Diagnose design
   diagnose_design(
     design = design,
-    population_draws = 100,
+    population_draws = 10,
     sample_draws = 1,
     assignment_draws = 1,
     bootstrap_diagnosands = F
