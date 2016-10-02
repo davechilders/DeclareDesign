@@ -846,7 +846,6 @@ test_that("model-based inference example works", {
   # Declare a DGP with 10 units and some background noise
   U <- declare_population(u = declare_variable(),
                           size = 10)
-  
   # Y is a concave function of treatment
   Y <- declare_potential_outcomes(
     condition_names = list(Z = 1:3),
