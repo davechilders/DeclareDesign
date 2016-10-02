@@ -128,15 +128,14 @@ test_that("section on 'Learning About Designs Through Diagnosis' works", {
 test_that(
   "section 'Illustration of Sampling Decisions: Handling Spatial Spillovers' of paper works",
   {
-    dist_effect <- 2
-    buffer <- 0
-    spillover <- 0
-    
+    # The population is just 36 points in a grid
+    # Each point is one unit distant from its neighbor
+    # We sample two points and randomly assign one to treatment
     spatial_data <-
       expand.grid(x = 1:6, y = 1:6)
     spatial_data$id <- 1:nrow(spatial_data)
-    
-    # Calculate distance of each point to each other point
+    # Create a distance matrix by calculate distance of 
+    # each point to each other point
     distmat <- with(spatial_data, {
       sapply(
         X = 1:length(x),
@@ -150,27 +149,24 @@ test_that(
         }
       )
     })
-    
+    # Set the diagonal of the distance matrix to 0
     diag(distmat) <- 0
-    
-    assign(x = "distmat",
-           value = distmat,
-           envir = globalenv())
-    
-    # Generate all possible pairs
+    # Set up the size of the distance effect, which correlates potential
+    # outcomes with spatial position, the size of the buffer, 
+    # and the range of the size of the spillover effect.
+    dist_effect <- 2
+    buffer <- 0
+    spillover <- 0
+    # Generate all possible pairs of points
     pairs <- t(with(spatial_data, combn(id, 2)))
-    
     # Generate distances of pairs
-    dists <-
-      distmat[pairs]
-    
-    # Generate indicator for all samples that meet the big and small buffers
-    pairs <-
-      data.frame(unit_1 = pairs[, 1], unit_2 = pairs[, 2])
-    
+    dists <- distmat[pairs]
+    # Generate indicator for all samples whose points are 
+    # at least the size of the buffer distant from each other 
+    pairs <- data.frame(unit_1 = pairs[, 1], unit_2 = pairs[, 2])
     pairs$outside <- dists > buffer
-    
-    
+    # Generate the probabilities of being assigned to treatment 
+    # for each point given the buffer and the proximity to other points
     spatial_data$buffer_prob <-
       with(subset(pairs, subset = outside),
            sapply(
@@ -178,10 +174,10 @@ test_that(
              FUN = function(unit_id)
                mean(c(unit_1, unit_2) %in% unit_id)
            ))
-    
+    # Generate the distance effect
     spatial_data$total_dist <- spatial_data$y ^ 2 / 10
-    
-    
+    # The population has a simple structure and the distance
+    # matrix and other spatial data in it
     population <- declare_population(
       noise = "rnorm(n_)",
       buffer_prob = "spatial_data$buffer_prob",
@@ -1188,6 +1184,8 @@ test_that('section on regression discontinuity works', {
       raw = T
     ) %*% c(.02, .02, .02, .2))
   }
+  assign(x = "control",value = control,envir = globalenv())
+  assign(x = "treatment",value = treatment,envir = globalenv())
   # Declare population
   population <- declare_population(
     # Declare how the running variable is distributed
