@@ -4,9 +4,9 @@
 \alias{diagnose_design}
 \title{Diagnose a design object}
 \usage{
-diagnose_design(design, population_draws = 2, sample_draws = 2,
-  assignment_draws = 2, bootstrap_diagnosands = TRUE,
-  population_replicates = 50)
+diagnose_design(design, population_draws = 1000, sample_draws = 1,
+  assignment_draws = 1, bootstrap_diagnosands = FALSE,
+  population_replicates = 1000)
 }
 \arguments{
 \item{design}{Design object created by \link{declare_design}.}

@@ -11,11 +11,11 @@
 #' @export
 diagnose_design <-
   function(design,
-           population_draws = 2,
-           sample_draws = 2,
-           assignment_draws = 2,
-           bootstrap_diagnosands = TRUE,
-           population_replicates = 50) {
+           population_draws = 1000,
+           sample_draws = 1,
+           assignment_draws = 1,
+           bootstrap_diagnosands = FALSE,
+           population_replicates = 1000) {
     
     ## core operations
     
