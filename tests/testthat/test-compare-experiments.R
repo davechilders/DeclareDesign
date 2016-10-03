@@ -38,14 +38,14 @@ test_that("compare two sampling strategies using modify_design", {
   
   design_alt <- modify_design(design = design, sampling = sampling_large)
   
-  comparison_two_designs <- compare_designs(list(design, design_alt))
+  comparison_two_designs <- compare_designs(list(design, design_alt), population_draws = 10)
   
 })
 
 
 test_that("compare to two designs varying sampling directly", {
   
-  comparison_change_inputs <- compare_designs(design = design, sampling = list(sampling, sampling_large))
+  comparison_change_inputs <- compare_designs(design = design, sampling = list(sampling, sampling_large), population_draws = 10)
   
 })
 
@@ -55,13 +55,13 @@ test_that("compare two assignment strategies using modify_design", {
   
   design_alt <- modify_design(design = design, assignment = assignment_equal_prob)
   
-  comparison_two_designs <- compare_designs(list(design, design_alt))
+  comparison_two_designs <- compare_designs(list(design, design_alt), population_draws = 10)
   
 })
 
 test_that("compare to two designs varying assignment directly", {
   
-  comparison_change_inputs <- compare_designs(design = design, assignment = list(assignment, assignment_equal_prob))
+  comparison_change_inputs <- compare_designs(design = design, assignment = list(assignment, assignment_equal_prob), population_draws = 10)
   
 })
 
@@ -74,13 +74,13 @@ test_that("compare two estimators using modify_design", {
   
   design_alt <- modify_design(design = design, estimator = estimator_lm)
   
-  comparison_two_designs <- compare_designs(list(design, design_alt))
+  comparison_two_designs <- compare_designs(list(design, design_alt), population_draws = 10)
   
 })
 
 test_that("compare to two designs varying estimator directly", {
   
-  comparison_change_inputs <- compare_designs(design = design, estimator = list(estimator_d_i_m, estimator_lm))
+  comparison_change_inputs <- compare_designs(design = design, estimator = list(estimator_d_i_m, estimator_lm), population_draws = 10)
   
 })
 
@@ -92,13 +92,13 @@ test_that("compare two PO declarations using modify_design", {
   
   design_alt <- modify_design(design = design, potential_outcomes = potential_outcomes_fixed)
   
-  comparison_two_designs <- compare_designs(list(design, design_alt))
+  comparison_two_designs <- compare_designs(list(design, design_alt), population_draws = 10)
   
 })
 
 test_that("compare to two designs varying PO declarations directly", {
   
-  comparison_change_inputs <- compare_designs(design = design, potential_outcomes = list(potential_outcomes, potential_outcomes_fixed))
+  comparison_change_inputs <- compare_designs(design = design, potential_outcomes = list(potential_outcomes, potential_outcomes_fixed), population_draws = 10)
   
 })
 
@@ -120,7 +120,7 @@ test_that("compare 3 designs", {
                                         label = "Simple Design")
   
   
-  comparison_change_inputs <- compare_designs(design = list(design, design_large_sampling, design_lm_estimator))
+  comparison_change_inputs <- compare_designs(design = list(design, design_large_sampling, design_lm_estimator), population_draws = 10)
   
 })
 
@@ -128,7 +128,7 @@ test_that("compare varying two parameters", {
   
   comparison_change_inputs <- compare_designs(design = design, 
                                               sampling = list(sampling, sampling_large),
-                                              estimator = list(estimator_d_i_m, estimator_lm))
+                                              estimator = list(estimator_d_i_m, estimator_lm), population_draws = 10)
   
 })
 
@@ -147,7 +147,7 @@ test_that("compare two different custom sampling functions", {
   
   comparison_change_inputs <- compare_designs(design = design, 
                                               sampling = list(sampling_custom_1, 
-                                                              sampling_custom_2))
+                                                              sampling_custom_2), population_draws = 10)
   
 })
 
@@ -168,6 +168,6 @@ test_that("compare two different custom assignment functions", {
   
   comparison_change_inputs <- compare_designs(design = design, 
                                               assignment = list(assignment_custom_1, 
-                                                                assignment_custom_2))
+                                                                assignment_custom_2), population_draws = 10)
   
 })

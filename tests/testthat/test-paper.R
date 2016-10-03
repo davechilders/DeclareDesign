@@ -97,7 +97,7 @@ test_that("section on 'Learning About Designs Through Diagnosis' works", {
       )
   )
   
-  compare_designs(design = heterogeneous_designs)
+  compare_designs(design = heterogeneous_designs, population_draws = 10)
   
   expect_message(
     spillover_designs <- quick_design(
@@ -119,7 +119,7 @@ test_that("section on 'Learning About Designs Through Diagnosis' works", {
     )
   )
   
-  compare_designs(design = factorial_designs)
+  compare_designs(design = factorial_designs, population_draws = 10)
   
 })
 

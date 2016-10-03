@@ -62,5 +62,5 @@ test_that("test whether custom continuous assignment function and POs with fixed
   data <- draw_data(design = design)
   head(data)  
   
-  diagnosis <- diagnose_design(design = design)
+  diagnosis <- diagnose_design(design = design, population_draws = 10)
 })
