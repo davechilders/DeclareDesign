@@ -84,14 +84,14 @@ test_that("section on 'Characterizing Research Designs in Code' works", {
 # "Learning About Designs Through Diagnosis" ------------------------------
 
 test_that("section on 'Learning About Designs Through Diagnosis' works", {
-  get_template(template_name = "spillovers")
-  get_template(template_name = "factorial")
-  get_template(template_name = "covariates")
+  spillover_template <- get_template(name = "spillovers")
+  factorial_template <- get_template(name = "factorial")
+  covariates_template <- get_template(name = "covariates")
   
   expect_message(
     heterogeneous_designs <-
       quick_design(
-        template = make_heterogeneous_fx_design,
+        template = covariates_template,
         n = 20,
         g = vary(0, .3, .6, .9)
       )
@@ -101,7 +101,7 @@ test_that("section on 'Learning About Designs Through Diagnosis' works", {
   
   expect_message(
     spillover_designs <- quick_design(
-      template = make_spillover_design,
+      template = spillover_template,
       buffer = vary(0, 3, 4),
       dist_effect = vary(0, 1, 3),
       intersect = TRUE
@@ -112,7 +112,7 @@ test_that("section on 'Learning About Designs Through Diagnosis' works", {
   
   expect_message(
     factorial_designs <- quick_design(
-      template = make_factorial_design,
+      template = factorial_template,
       assignment_strategy = vary("two_by_two", "three_arm"),
       interaction_coefficient = vary(0.00, 0.05, 0.10, 0.15, 0.2,
                                      0.25, 0.30, 0.35, 0.4)
