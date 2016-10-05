@@ -7,7 +7,7 @@
 #' 
 #' @export
 get_design <- function(name){
-  design_library_url_R <- "http://blair-data-share.s3-website-us-east-1.amazonaws.com/" ##"https://declaredesign.org/library/R/"
+  design_library_url_R <- "https://declaredesign.org/library/"
   design_URL <- paste0(design_library_url_R, name, ".rds")
   data_URL <- paste0(design_library_url_R, name, ".rdata")
   suppressWarnings(try(load(url(data_URL)), silent = TRUE))
@@ -22,7 +22,7 @@ get_design <- function(name){
 #' 
 #' @export
 get_template <- function(name){
-  design_library_url_R <- "http://blair-data-share.s3-website-us-east-1.amazonaws.com/" ##"https://declaredesign.org/library/R/"
+  design_library_url_R <- "https://declaredesign.org/templates/"
   design_URL <- paste0(design_library_url_R, name, "_template.rds")
   readRDS(gzcon(url(design_URL)))
 }
