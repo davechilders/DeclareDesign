@@ -84,9 +84,9 @@ test_that("section on 'Characterizing Research Designs in Code' works", {
 # "Learning About Designs Through Diagnosis" ------------------------------
 
 test_that("section on 'Learning About Designs Through Diagnosis' works", {
-  spillover_template <- get_template(name = "spillovers")
+  spillover_template <- get_template(name = "spatial_spillovers")
   factorial_template <- get_template(name = "factorial")
-  covariates_template <- get_template(name = "covariates")
+  covariates_template <- get_template(name = "covariate_control")
   
   expect_message(
     heterogeneous_designs <-
@@ -151,6 +151,9 @@ test_that(
     })
     # Set the diagonal of the distance matrix to 0
     diag(distmat) <- 0
+    
+    assign(x = "distmat", value = distmat, envir = globalenv())
+
     # and the range of the size of the spillover effect.
     dist_effect <- 2
     buffer <- 4
