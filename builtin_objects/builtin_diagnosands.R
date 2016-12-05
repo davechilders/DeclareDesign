@@ -18,7 +18,7 @@ sd_estimate <- declare_diagnosand(diagnostic_statistic_text = "est",
                                   summary_function = sd, label = "sd(estimate)")
 type_s_rate <- declare_diagnosand(diagnostic_statistic_text = "sign(est) != sign(estimand)", 
                                   summary_function = mean, label = "type S rate")
-mean_estimand <- declare_diagnosand(diagnostic_statistic_text = "mean(estimand)",
+mean_estimand <- declare_diagnosand(diagnostic_statistic_text = "estimand",
                                     summary_function = mean, label = "mean(estimand)")
 
 save(bias, rmse, power, coverage, mean_estimate, sd_estimate, type_s_rate, mean_estimand, file = "data/diagnosands.RData", 
